@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+
+# Monorepo / Turbo
+.turbo/
+
+# Cursor
+.cursor/
+
+# Agents
+.agents/
+
+# Builds
+dist/
+dist-ssr/
+.next/
+out/
+.vercel/
+
+# Prisma generated client
+app/src/generated/
+
+# Vite (wallet)
+.vite/
+.pnpm-store
+# Env & secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Logs & debug
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Caches
+.cache/
+.eslintcache
+.stylelintcache
+
+# Extension release artifacts
+*.crx
+*.pem
+web-ext-artifacts/
+*.zip
+
+docs

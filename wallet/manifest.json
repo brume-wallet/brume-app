@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "Brume Wallet",
+  "short_name": "Brume",
+  "version": "0.0.1",
+  "description": "Solana wallet for devnet and mainnet — local-first",
+  "action": {
+    "default_title": "Brume Wallet"
+  },
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "permissions": ["storage", "scripting", "alarms", "sidePanel"],
+  "host_permissions": [
+    "https://api.devnet.solana.com/*",
+    "https://api.mainnet-beta.solana.com/*",
+    "https://rpc.magicblock.app/*",
+    "https://payments.magicblock.app/*",
+    "https://*.magicblock.app/*",
+    "http://localhost/*",
+    "https://localhost/*",
+    "http://127.0.0.1/*",
+    "https://127.0.0.1/*",
+    "https://token.jup.ag/*",
+    "https://cache.jup.ag/*",
+    "https://lite-api.jup.ag/*",
+    "https://api.dexscreener.com/*",
+    "https://raw.githubusercontent.com/*",
+    "https://ipfs.io/*",
+    "https://arweave.net/*",
+    "https://*.vercel.app/*"
+  ],
+  "optional_host_permissions": ["https://*/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' data: https: http:;"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["src/content/bridge.ts"],
+      "run_at": "document_start"
+    }
+  ]
+}

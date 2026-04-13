@@ -1,0 +1,37 @@
+{
+  "name": "@brume/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate || true"
+  },
+  "dependencies": {
+    "@brume/shared": "workspace:*",
+    "@prisma/adapter-pg": "^7.7.0",
+    "@prisma/client": "^7.7.0",
+    "@solana/web3.js": "^1.98.0",
+    "dotenv": "^17.4.1",
+    "next": "^15.1.6",
+    "pg": "^8.20.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.9",
+    "prisma": "^7.7.0",
+    "tailwindcss": "3",
+    "typescript": "~5.7.2"
+  }
+}

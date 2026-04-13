@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Build output (ship only from CI or release pipeline, not from dev machines)
+dist/
+dist-ssr/
+
+# Vite
+.vite/
+
+# Local / ephemeral
+*.local
+.cache/
+
+# Environment and secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors (keep optional shared snippets if you add them)
+.idea/
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Tooling caches
+.turbo/
+.eslintcache
+.stylelintcache
+
+# Chrome extension signing / release artifacts (add when you automate packaging)
+*.crx
+*.pem
+web-ext-artifacts/
+*.zip

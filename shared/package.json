@@ -1,0 +1,23 @@
+{
+  "name": "@brume/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./constants": "./src/constants.ts",
+    "./jupiter-price": "./src/jupiter-price.ts",
+    "./portfolio-fiat": "./src/portfolio-fiat.ts",
+    "./activity-format": "./src/activity-format.ts",
+    "./known-tokens": "./src/known-tokens.ts",
+    "./portfolio-types": "./src/portfolio-types.ts",
+    "./activity-types": "./src/activity-types.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2"
+  }
+}

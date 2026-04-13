@@ -1,0 +1,100 @@
+import type { Config } from "tailwindcss";
+
+/**
+ * Brume marketing + app theme (aligned with x.html / design reference).
+ * Semantic tokens mirror Material-style names used on the landing; `brume-*` aliases kept for API routes.
+ */
+const config: Config = {
+  darkMode: "class",
+  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
+  theme: {
+    extend: {
+      colors: {
+        background: "#121318",
+        surface: "#121318",
+        "surface-dim": "#121318",
+        "surface-container-lowest": "#0d0e13",
+        "surface-container-low": "#1a1b21",
+        "surface-container": "#1e1f25",
+        "surface-container-high": "#292a2f",
+        "surface-container-highest": "#34343a",
+        "surface-variant": "#34343a",
+        "surface-bright": "#38393f",
+        primary: "#c7bfff",
+        "primary-container": "#8e7fff",
+        "primary-fixed": "#e4dfff",
+        "primary-fixed-dim": "#c7bfff",
+        "on-primary": "#2a039d",
+        "on-primary-container": "#24008c",
+        "on-primary-fixed": "#170065",
+        "on-primary-fixed-variant": "#422db2",
+        secondary: "#4ddcc6",
+        "secondary-container": "#00b4a0",
+        "secondary-fixed": "#6ef9e2",
+        "secondary-fixed-dim": "#4ddcc6",
+        "on-secondary": "#003730",
+        "on-secondary-container": "#003f37",
+        "on-secondary-fixed": "#00201b",
+        "on-secondary-fixed-variant": "#005047",
+        tertiary: "#d9c58b",
+        "tertiary-container": "#bcaa72",
+        "tertiary-fixed": "#f6e1a5",
+        "tertiary-fixed-dim": "#d9c58b",
+        "on-tertiary": "#3b2f04",
+        "on-tertiary-container": "#4b3e11",
+        "on-tertiary-fixed": "#231b00",
+        "on-tertiary-fixed-variant": "#534618",
+        "on-surface": "#e3e1e9",
+        "on-surface-variant": "#c8c4d6",
+        "on-background": "#e3e1e9",
+        outline: "#928f9f",
+        "outline-variant": "#474554",
+        error: "#ffb4ab",
+        "error-container": "#93000a",
+        "on-error": "#690005",
+        "on-error-container": "#ffdad6",
+        "inverse-surface": "#e3e1e9",
+        "inverse-on-surface": "#2f3036",
+        "inverse-primary": "#5a49cb",
+        "surface-tint": "#c7bfff",
+        brume: {
+          void: "#050506",
+          mist: "#0c0d12",
+          frost: "#13151c",
+          line: "rgba(255, 255, 255, 0.08)",
+          accent: "#8b7cff",
+          "accent-dim": "#6d5fd6",
+          mint: "#5eead4",
+          sun: "#f5e0a4",
+        },
+      },
+      borderRadius: {
+        DEFAULT: "1rem",
+        lg: "2rem",
+        xl: "3rem",
+      },
+      fontFamily: {
+        display: ["var(--font-display)", "Georgia", "serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        headline: ["var(--font-display)", "Georgia", "serif"],
+        body: ["var(--font-sans)", "system-ui", "sans-serif"],
+      },
+      backgroundImage: {
+        "mist-radial":
+          "radial-gradient(ellipse 80% 60% at 50% -20%, rgba(139, 124, 255, 0.22), transparent 55%)",
+        "glow-radial":
+          "radial-gradient(circle at 80% 20%, rgba(94, 234, 212, 0.12), transparent 45%)",
+        "hero-glow":
+          "radial-gradient(circle at 50% 50%, rgba(139, 124, 255, 0.12) 0%, transparent 70%)",
+      },
+      boxShadow: {
+        card: "0 0 0 1px rgba(255,255,255,0.06), 0 24px 80px -32px rgba(0,0,0,0.85)",
+        lift: "0 12px 40px -20px rgba(139, 124, 255, 0.35)",
+        nav: "0 8px 32px rgba(139,124,255,0.06)",
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;
