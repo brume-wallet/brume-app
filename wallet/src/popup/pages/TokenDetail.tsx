@@ -5,6 +5,7 @@ import {
   Copy01Icon,
   SentIcon,
 } from "@hugeicons/core-free-icons";
+import { Check } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Drawer,
@@ -28,6 +29,7 @@ import { PageHeader } from "../components/PageHeader";
 import { BrumeIcon } from "../components/BrumeIcon";
 import { NATIVE_SOL_TOKEN_SEGMENT } from "../lib/native-sol-route";
 import { scheduleWalletStateRefresh } from "../lib/schedule-wallet-state-refresh";
+import { useCopyToClipboard } from "../lib/useCopyToClipboard";
 import * as msg from "../messaging";
 import { useWalletStore } from "../store";
 import { cn } from "@/lib/utils";
@@ -41,7 +43,8 @@ function ellipsifyMint(mint: string, head = 4, tail = 4): string {
 function InfoRow(props: {
   label: string;
   children: ReactNode;
-  /** When false, omit bottom border (e.g. last row before actions). */
+    // When false, omit bottom border (e.g. last row before actions).
+
   border?: boolean;
 }) {
   return (
@@ -87,7 +90,6 @@ export function TokenDetail() {
   const [burnAmount, setBurnAmount] = useState("");
   const [busy, setBusy] = useState<null | "partial" | "all">(null);
   const [err, setErr] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [burnConfirm, setBurnConfirm] = useState<
@@ -107,9 +109,11 @@ export function TokenDetail() {
     : (row?.decimals ?? 9);
   const decimalsDisplay = String(decimals);
 
-  /** Mint shown on-chain for native SOL (wrapped SOL mint). */
+    // Mint shown on-chain for native SOL (wrapped SOL mint).
+
   const mintAddress = isNativeSolDetail ? SOL_WRAPPED_MINT : mint;
   const mintShort = ellipsifyMint(mintAddress);
+  const { copied, copy } = useCopyToClipboard(mintAddress, { ms: 1500 });
 
   const humanBal = useMemo(() => {
     if (!state) return 0;
@@ -129,13 +133,7 @@ export function TokenDetail() {
       : null;
 
   async function copyMint() {
-    try {
-      await navigator.clipboard.writeText(mintAddress);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* ignore */
-    }
+    await copy();
   }
 
   async function executeBurn(amount: string, mode: "partial" | "all") {
@@ -262,16 +260,15 @@ export function TokenDetail() {
                 aria-label="Copy full mint address"
                 onClick={() => void copyMint()}
               >
-                <BrumeIcon icon={Copy01Icon} size={16} />
+                {copied ? (
+                  <Check className="h-4 w-4 text-[#34C759]" strokeWidth={2} />
+                ) : (
+                  <BrumeIcon icon={Copy01Icon} size={16} />
+                )}
               </Button>
             </div>
           </InfoRow>
         </div>
-        {copied ? (
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            Mint address copied.
-          </p>
-        ) : null}
         {explorerMint ? (
           <a
             href={explorerMint}

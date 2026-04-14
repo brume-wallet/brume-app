@@ -27,7 +27,8 @@ export function EditAccount() {
 
   const [label, setLabel] = useState(acc?.label ?? "");
 
-  /** Only re-seed when opening a different account — not on every vault refresh (same `acc` object identity churn). */
+    // Only re-seed when opening a different account — not on every vault refresh (same `acc` object identity churn).
+
   useEffect(() => {
     if (acc) setLabel(acc.label);
   }, [accountId, acc?.id]);

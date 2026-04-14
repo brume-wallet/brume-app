@@ -1,3 +1,11 @@
+// HTTPS client for https://payments.magicblock.app (SPL private payments).
+// cluster = devnet | mainnet, or a custom base-layer RPC URL string.
+import {
+  normalizeInitializeMintUnsigned,
+  normalizeUnsignedPaymentTransaction,
+  type InitializeMintUnsigned,
+  type UnsignedPaymentTransaction,
+} from "@brume/shared";
 import {
   MAGICBLOCK_PAYMENTS_API_BASE_URL,
   paymentsClusterForNetwork,
@@ -5,6 +13,8 @@ import {
 } from "@/shared/constants";
 
 const API_BASE = MAGICBLOCK_PAYMENTS_API_BASE_URL.replace(/\/+$/, "");
+
+export type { InitializeMintUnsigned, UnsignedPaymentTransaction };
 
 function paymentsApiErrorToMessage(error: unknown): string | undefined {
   if (error == null) return undefined;
@@ -41,6 +51,7 @@ function clusterForRequest(
   return paymentsClusterForNetwork(network);
 }
 
+// Parses JSON; on failure throws with API error.message / validation issues when present.
 async function readJson(res: Response): Promise<unknown> {
   const text = await res.text();
   let data: unknown = {};
@@ -58,24 +69,6 @@ async function readJson(res: Response): Promise<unknown> {
   }
   return data;
 }
-
-export interface UnsignedPaymentTransaction {
-  kind: string;
-  version: "legacy";
-  transactionBase64: string;
-  sendTo?: "base" | "ephemeral";
-  recentBlockhash: string;
-  lastValidBlockHeight: number;
-  instructionCount: number;
-  requiredSigners: string[];
-  validator?: string;
-}
-
-export type InitializeMintUnsigned = UnsignedPaymentTransaction & {
-  kind: "initializeMint";
-  transferQueue: string;
-  rentPda: string;
-};
 
 export async function paymentsGetIsMintInitialized(
   mint: string,
@@ -145,7 +138,8 @@ export async function paymentsPostInitializeMint(params: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return readJson(res) as Promise<InitializeMintUnsigned>;
+  const raw = await readJson(res);
+  return normalizeInitializeMintUnsigned(raw);
 }
 
 export async function paymentsPostSplDeposit(params: {
@@ -172,7 +166,8 @@ export async function paymentsPostSplDeposit(params: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return readJson(res) as Promise<UnsignedPaymentTransaction>;
+  const raw = await readJson(res);
+  return normalizeUnsignedPaymentTransaction(raw);
 }
 
 export async function paymentsPostSplWithdraw(params: {
@@ -196,7 +191,8 @@ export async function paymentsPostSplWithdraw(params: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return readJson(res) as Promise<UnsignedPaymentTransaction>;
+  const raw = await readJson(res);
+  return normalizeUnsignedPaymentTransaction(raw);
 }
 
 export async function paymentsPostSplTransfer(params: {
@@ -230,5 +226,6 @@ export async function paymentsPostSplTransfer(params: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return readJson(res) as Promise<UnsignedPaymentTransaction>;
+  const raw = await readJson(res);
+  return normalizeUnsignedPaymentTransaction(raw);
 }

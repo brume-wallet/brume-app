@@ -2,13 +2,16 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { ArrowLeft02Icon, Copy01Icon } from "@hugeicons/core-free-icons";
+import { Check } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { BrumeIcon } from "../components/BrumeIcon";
 import * as msg from "../messaging";
 import { useWalletStore } from "../store";
 import { cn } from "@/lib/utils";
+import { useCopyToClipboard } from "../lib/useCopyToClipboard";
 
-/** In-page step change only (shell already slides R→L via MainShell `accountSubpage`). */
+// In-page step change only (shell already slides R→L via MainShell `accountSubpage`).
+
 const stepCrossfade = { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const };
 
 export function PrivateKey() {
@@ -25,7 +28,7 @@ export function PrivateKey() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard(secret, { ms: 1500 });
 
   const isActive = acc && state && acc.id === state.activeAccountId;
 
@@ -44,14 +47,8 @@ export function PrivateKey() {
   }
 
   async function copySecret() {
-    if (!secret) return;
-    try {
-      await navigator.clipboard.writeText(secret);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setErr("Could not copy to clipboard");
-    }
+    const ok = await copy();
+    if (!ok) setErr("Could not copy to clipboard");
   }
 
   if (!state || !acc) {
@@ -140,8 +137,12 @@ export function PrivateKey() {
                 className="flex w-full items-center justify-center gap-2 py-3.5 text-[15px] font-medium text-foreground transition-colors hover:bg-muted/40"
                 onClick={() => void copySecret()}
               >
-                <BrumeIcon icon={Copy01Icon} size={20} />
-                {copied ? "Copied" : "Copy"}
+                {copied ? (
+                  <Check className="h-5 w-5 text-[#34C759]" strokeWidth={2} />
+                ) : (
+                  <BrumeIcon icon={Copy01Icon} size={20} />
+                )}
+                Copy
               </button>
             </div>
           </div>

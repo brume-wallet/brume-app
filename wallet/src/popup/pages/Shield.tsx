@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ArrowDownUp, ChevronRight } from "lucide-react";
 import type { PortfolioTokenRow } from "@brume/shared";
 import {
-  ArrowDataTransferVerticalIcon,
-  ArrowDown01Icon,
   Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
@@ -72,19 +71,22 @@ function rawToHuman(rawStr: string, dec: number): number {
   return Number(raw) / Number(10n ** BigInt(dec));
 }
 
-/** Larger of two integer raw strings; ignores invalid entries. */
+// Larger of two integer raw strings; ignores invalid entries.
+
 function maxBigintRaw(a?: string | null, b?: string | null): bigint {
   let x = 0n;
   let y = 0n;
   try {
     if (a != null && a !== "") x = BigInt(a);
   } catch {
-    /* ignore */
+        // ignore
+
   }
   try {
     if (b != null && b !== "") y = BigInt(b);
   } catch {
-    /* ignore */
+        // ignore
+
   }
   return x > y ? x : y;
 }
@@ -100,12 +102,14 @@ function tokenHumanBalance(t: PortfolioTokenRow): number {
   }
 }
 
-/** Token circle; optional shield badge only on the private / ephemeral leg. */
+// Token circle; optional shield badge only on the private / ephemeral leg.
+
 function ShieldTokenAvatar(props: {
   symbol: string;
   logoUri?: string | null;
   size?: "md" | "lg";
-  /** When true, show shield icon overlapping the token (private balance side only). */
+    // When true, show shield icon overlapping the token (private balance side only).
+
   showShieldOverlay?: boolean;
 }) {
   const { symbol, logoUri, size = "md", showShieldOverlay = false } = props;
@@ -161,7 +165,7 @@ function TokenSelectorPill(props: {
       disabled={disabled}
       onClick={onOpen}
       className={cn(
-        "flex shrink-0 items-center gap-2 rounded-full border border-border/80 bg-muted/45 py-1 pl-1.5 pr-2.5 transition-[transform,colors] hover:bg-muted/70 active:scale-[0.98]",
+        "flex shrink-0 items-center gap-2 rounded-full border border-border/60 bg-card py-1 pl-1.5 pr-2 transition-[transform,colors] hover:bg-secondary active:scale-[0.98]",
         disabled && "pointer-events-none opacity-45",
       )}
       aria-label={`Select token, current ${symbol}`}
@@ -175,11 +179,7 @@ function TokenSelectorPill(props: {
       <span className="max-w-[5.5rem] truncate text-sm font-semibold text-foreground">
         {symbol}
       </span>
-      <BrumeIcon
-        icon={ArrowDown01Icon}
-        size={16}
-        className="shrink-0 text-muted-foreground"
-      />
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2} />
     </button>
   );
 }
@@ -274,10 +274,10 @@ export function Shield() {
         : undefined) ??
     9;
 
-  /**
-   * Shield spend cap: max(Payments base balance, portfolio row). The API can
-   * return 0 while the wallet snapshot still has the correct ATA amount.
-   */
+    // 
+  // Shield spend cap: max(Payments base balance, portfolio row). The API can
+  // return 0 while the wallet snapshot still has the correct ATA amount.
+
   const capRaw = useMemo(() => {
     if (mode === "shield") {
       return maxBigintRaw(
@@ -457,7 +457,6 @@ export function Shield() {
     );
   }
 
-  const topLabel = mode === "shield" ? "You pay" : "From private";
   const rateLine =
     unitUsdApprox != null && Number.isFinite(unitUsdApprox)
       ? `1 ${tokenMeta.symbol} ≈ $${unitUsdApprox < 0.01 ? unitUsdApprox.toPrecision(3) : unitUsdApprox.toFixed(2)}`
@@ -467,198 +466,222 @@ export function Shield() {
   const inputDisabled = busy || capRaw <= 0n;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-24 pt-3">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-base font-semibold tracking-tight text-foreground">
-            Shield
-          </h1>
-          <div
-            className="flex rounded-lg bg-muted/80 p-0.5 text-[11px] font-semibold"
-            role="tablist"
-            aria-label="Mode"
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
+      <header className="flex items-start justify-between px-5 pt-4">
+        <h1 className="text-[18px] font-semibold leading-7 text-foreground">
+          Shield
+        </h1>
+        <Link
+          to="/"
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-secondary/80",
+          )}
+          aria-label="Close"
+        >
+          <span className="sr-only">Close</span>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="text-foreground"
           >
-            {(["shield", "unshield"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                role="tab"
-                aria-selected={mode === m}
-                className={cn(
-                  "rounded-md px-2.5 py-1 transition-colors",
-                  mode === m
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground",
-                )}
-                onClick={() => {
-                  setMode(m);
-                  setAmount("");
-                  setSubmitErr(null);
-                }}
-              >
-                {m === "shield" ? "Shield" : "Unshield"}
-              </button>
-            ))}
-          </div>
-        </div>
+            <path
+              d="M18 6L6 18"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M6 6L18 18"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </Link>
+      </header>
 
-        {/* Source */}
-        <div className="rounded-2xl bg-card p-4 ring-1 ring-border/70">
-          <div className="text-[11px] font-medium text-muted-foreground">
-            {topLabel}
-          </div>
-          <div className="mt-1 flex items-end justify-between gap-2">
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="0"
-              value={amount}
-              disabled={inputDisabled}
-              onChange={(e) =>
-                setAmount(sanitizeDecimalInput(e.target.value, dec))
-              }
-              className="min-w-0 flex-1 bg-transparent text-[28px] font-medium leading-none tracking-tight text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
-            />
-            <TokenSelectorPill
-              symbol={tokenMeta.symbol}
-              logoUri={tokenMeta.logoUri}
-              disabled={busy}
-              size="md"
-              showShieldOverlay={mode === "unshield"}
-              onOpen={() => setTokenDrawerOpen(true)}
-            />
-          </div>
-          <div className="mt-3 flex flex-wrap items-center justify-end gap-1.5">
-            {(
-              [
-                { label: "25%", fn: () => applyPct(25) },
-                { label: "50%", fn: () => applyPct(50) },
-                { label: "Max", fn: () => applyPct(100) },
-              ] as const
-            ).map(({ label, fn }) => (
-              <Button
-                key={label}
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={pctDisabled}
-                className="h-8 rounded-full px-3 text-xs font-semibold"
-                onClick={() => fn()}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
-          <div className="mt-3 flex items-end justify-between gap-2 border-t border-border/50 pt-3">
-            <span className="min-w-0 truncate text-[11px] text-muted-foreground">
-              {loadingBalances
-                ? "Updating…"
-                : balanceErr && mode === "unshield"
-                  ? balanceErr
-                  : rateLine ?? (balanceErr ? balanceErr : "—")}
-            </span>
-            <div className="shrink-0 text-right">
-              <div className="text-[10px] font-medium text-muted-foreground">
-                {mode === "shield" ? "Wallet balance" : "Private balance"}
-              </div>
-              <div
-                className="text-sm font-semibold tabular-nums text-foreground"
-                title="Spendable on this side"
-              >
-                {sourceHuman.toLocaleString(undefined, {
-                  maximumFractionDigits: Math.min(8, dec),
-                })}{" "}
-                <span className="text-xs font-medium text-muted-foreground">
-                  {tokenMeta.symbol}
-                </span>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-4 pt-6">
+        <div className="flex flex-col gap-2" style={{ position: "relative", isolation: "isolate" }}>
+          {/* From card */}
+          <div className="rounded-2xl bg-card px-3 py-2.5" style={{ position: "relative", zIndex: 2 }}>
+            <div className="flex items-center justify-between whitespace-nowrap">
+              <span className="text-[16px] leading-5 text-muted-foreground">
+                {mode === "shield" ? "You shield" : "You unshield"}
+              </span>
+              <div className="flex items-center gap-4 text-[14px] leading-5 text-[color:var(--extension-accent)]">
+                {(
+                  [
+                    { label: "25%", fn: () => applyPct(25) },
+                    { label: "50%", fn: () => applyPct(50) },
+                    { label: "Max", fn: () => applyPct(100) },
+                  ] as const
+                ).map(({ label, fn }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    disabled={pctDisabled}
+                    className="bg-transparent p-0 text-[14px] font-normal text-[color:var(--extension-accent)] transition-opacity hover:opacity-70 disabled:opacity-40"
+                    onClick={() => fn()}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="relative z-[1] flex justify-center">
-          <button
-            type="button"
-            onClick={flipMode}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/35 bg-primary text-primary-foreground shadow-md shadow-primary/25 transition-[transform,colors] hover:bg-primary/90 active:scale-95"
-            aria-label="Flip shield direction"
-          >
-            <BrumeIcon
-              icon={ArrowDataTransferVerticalIcon}
-              size={22}
-              className="text-primary-foreground"
-            />
-          </button>
-        </div>
+            <div className="flex h-12 items-center gap-1">
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="0"
+                value={amount}
+                disabled={inputDisabled}
+                onChange={(e) => setAmount(sanitizeDecimalInput(e.target.value, dec))}
+                className="min-w-0 flex-1 bg-transparent p-0 text-[32px] font-semibold leading-9 text-muted-foreground placeholder:text-muted-foreground/40 focus:outline-none"
+              />
+              <TokenSelectorPill
+                symbol={tokenMeta.symbol}
+                logoUri={tokenMeta.logoUri}
+                disabled={busy}
+                size="md"
+                showShieldOverlay={mode === "unshield"}
+                onOpen={() => setTokenDrawerOpen(true)}
+              />
+            </div>
 
-        {/* Receive */}
-        <div className="-mt-5 rounded-2xl bg-card p-4 pt-7 ring-1 ring-border/70">
-          <div className="text-[11px] font-medium text-muted-foreground">
-            You receive
-          </div>
-          <div className="mt-1 flex items-end justify-between gap-2">
-            <span
-              className={cn(
-                "min-w-0 flex-1 text-[28px] font-medium leading-none tracking-tight tabular-nums",
-                amountWithinCap ? "text-foreground" : "text-muted-foreground/50",
-              )}
-            >
-              {amountWithinCap ? amount : "0"}
-            </span>
-            <TokenSelectorPill
-              symbol={tokenMeta.symbol}
-              logoUri={tokenMeta.logoUri}
-              disabled={busy}
-              size="lg"
-              showShieldOverlay={mode === "shield"}
-              onOpen={() => setTokenDrawerOpen(true)}
-            />
-          </div>
-          <div className="mt-3 flex items-end justify-between gap-2 text-[11px] text-muted-foreground">
-            <span>
-              {receiveUsdApprox != null
-                ? `≈ $${receiveUsdApprox < 0.01 ? receiveUsdApprox.toPrecision(2) : receiveUsdApprox.toFixed(2)}`
-                : "—"}
-            </span>
-            <div className="shrink-0 text-right">
-              <div className="text-[10px] font-medium">
-                {mode === "shield" ? "Private balance" : "Wallet balance"}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-background">
+                  <ArrowDownUp size={12} className="text-muted-foreground/40" />
+                </div>
+                <span className="text-[14px] leading-5 text-muted-foreground">
+                  {loadingBalances
+                    ? "Updating…"
+                    : balanceErr && mode === "unshield"
+                      ? balanceErr
+                      : rateLine ?? (balanceErr ? balanceErr : "—")}
+                </span>
               </div>
-              <div
-                className="text-sm font-semibold tabular-nums text-foreground"
-                title="Balance on destination side"
-              >
+              <span className="text-[14px] leading-5 text-muted-foreground">
+                Balance: {sourceHuman.toLocaleString()}{" "}
+              </span>
+            </div>
+
+            {/* Swap circle — toggles shield/unshield */}
+            <button
+              type="button"
+              onClick={flipMode}
+              disabled={busy}
+              className="absolute bottom-[-18px] left-[calc(50%+4px)] z-[3] flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+              aria-label="Toggle shield direction"
+            >
+              <ArrowDownUp size={16} className="text-background" />
+            </button>
+          </div>
+
+          {/* To card */}
+          <div className="rounded-2xl border border-border bg-background px-3 py-3" style={{ zIndex: 1 }}>
+            <div className="flex items-center">
+              <span className="text-[16px] leading-5 text-muted-foreground">
+                You receive
+              </span>
+            </div>
+            <div className="flex h-12 items-center gap-1">
+              <span className="min-w-0 flex-1 text-[32px] font-semibold leading-9 text-muted-foreground">
+                {amountWithinCap && amount.trim() ? amount : "0"}
+              </span>
+              <TokenSelectorPill
+                symbol={tokenMeta.symbol}
+                logoUri={tokenMeta.logoUri}
+                disabled={busy}
+                size="md"
+                showShieldOverlay={mode === "shield"}
+                onOpen={() => setTokenDrawerOpen(true)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[20px] leading-6 text-muted-foreground/70">
+                {receiveUsdApprox != null
+                  ? `$${receiveUsdApprox < 0.01 ? receiveUsdApprox.toPrecision(2) : receiveUsdApprox.toFixed(2)}`
+                  : "$0"}
+              </span>
+              <span className="text-[14px] leading-5 text-muted-foreground">
+                Balance:{" "}
                 {mode === "unshield" && !balanceInfo
                   ? "—"
-                  : (
-                      <>
-                        {destHuman.toLocaleString(undefined, {
-                          maximumFractionDigits: Math.min(8, dec),
-                        })}{" "}
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {tokenMeta.symbol}
-                        </span>
-                      </>
-                    )}
-              </div>
+                  : destHuman.toLocaleString(undefined, {
+                      maximumFractionDigits: Math.min(8, dec),
+                    })}
+              </span>
             </div>
           </div>
         </div>
 
         {submitErr ? (
-          <p className="text-center text-xs text-destructive">{submitErr}</p>
+          <p className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-center text-xs text-destructive">
+            {submitErr}
+          </p>
         ) : null}
+      </div>
 
+      <div className="shrink-0 px-5 pb-5 pt-2">
         <Button
           type="button"
           size="lg"
-          className="h-12 w-full rounded-2xl text-[15px] font-semibold"
+          className="h-12 w-full rounded-full text-[15px] font-normal"
           disabled={primaryDisabled}
           onClick={() => void onSubmit()}
         >
           {busy ? "Signing…" : "Confirm"}
         </Button>
       </div>
+
+      {busy ? (
+        <div className="absolute inset-0 z-40 flex flex-col bg-background/95 backdrop-blur-sm">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-8 py-10">
+            <div className="flex items-center gap-4 py-2">
+              <div className="size-16 shrink-0 overflow-hidden rounded-full ring-1 ring-border">
+                {tokenMeta.logoUri ? (
+                  <img
+                    src={tokenMeta.logoUri}
+                    alt=""
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <div className="flex size-full items-center justify-center bg-muted text-lg font-bold text-foreground">
+                    {tokenMeta.symbol.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <ChevronRight
+                size={16}
+                className="shrink-0 text-muted-foreground brume-chevron-bounce"
+              />
+              <img
+                src="/hero-new/Shield.png"
+                alt=""
+                className="size-16 shrink-0 object-contain"
+              />
+            </div>
+            <p className="text-center text-xl font-semibold text-foreground">
+              {mode === "shield" ? "Shielding…" : "Unshielding…"}
+            </p>
+          </div>
+          <div className="border-t border-border px-4 pb-6 pt-4">
+            <Button
+              type="button"
+              size="lg"
+              disabled
+              className="h-12 w-full rounded-full bg-[var(--btn-disabled)] text-[15px] font-normal text-white opacity-100"
+            >
+              In progress…
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <Drawer open={tokenDrawerOpen} onOpenChange={setTokenDrawerOpen}>
         <DrawerContent className="flex max-h-[88dvh] flex-col">

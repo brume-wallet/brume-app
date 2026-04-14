@@ -22,12 +22,13 @@ import { useWalletStore } from "../store";
 const REFRESH_MS = 45_000;
 
 export type JupiterPortfolioPricing = {
-  /** Sum of priced SOL + SPL holdings; null until first Jupiter response. */
+    // Sum of priced SOL + SPL holdings; null until first Jupiter response.
+
   totalUsdApprox: number | null;
-  /**
-   * Same portfolio as `totalUsdApprox`, expressed in SOL at Jupiter SOL/USD.
-   * Null until prices load; then 0 if nothing priced.
-   */
+    // 
+  // Same portfolio as `totalUsdApprox`, expressed in SOL at Jupiter SOL/USD.
+  // Null until prices load; then 0 if nothing priced.
+
   totalPortfolioSolApprox: number | null;
   solFiatApprox: number | null;
   splFiatApprox: (mint: string) => number | null;
@@ -38,9 +39,9 @@ export type JupiterPortfolioPricing = {
 const JupiterPortfolioPricesContext =
   createContext<JupiterPortfolioPricing | null>(null);
 
-/**
- * Devnet: no Jupiter / USD “portfolio value” (tokens + lamports still load via Brume API + RPC).
- */
+// 
+// Devnet: no Jupiter / USD “portfolio value” (tokens + lamports still load via Brume API + RPC).
+
 const DEVNET_PORTFOLIO_PRICING: JupiterPortfolioPricing = {
   totalUsdApprox: null,
   totalPortfolioSolApprox: null,

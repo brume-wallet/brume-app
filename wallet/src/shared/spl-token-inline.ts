@@ -21,7 +21,8 @@ export function tokenProgramPubkey(kind: TokenProgramKind): PublicKey {
   return kind === "token-2022" ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
 }
 
-/** SPL Associated Token Account PDA for (owner, token program, mint). */
+// SPL Associated Token Account PDA for (owner, token program, mint).
+
 export function getAssociatedTokenAddressSync(
   mint: PublicKey,
   owner: PublicKey,
@@ -34,7 +35,8 @@ export function getAssociatedTokenAddressSync(
   return addr;
 }
 
-/** Associated Token Account program — idempotent create (instruction index 1). */
+// Associated Token Account program — idempotent create (instruction index 1).
+
 export function createAssociatedTokenAccountIdempotentInstruction(
   payer: PublicKey,
   associatedToken: PublicKey,
@@ -56,7 +58,8 @@ export function createAssociatedTokenAccountIdempotentInstruction(
   });
 }
 
-/** SPL Token `BurnChecked` (instruction 15). */
+// SPL Token `BurnChecked` (instruction 15).
+
 export function createBurnCheckedInstruction(
   account: PublicKey,
   mint: PublicKey,
@@ -80,7 +83,8 @@ export function createBurnCheckedInstruction(
   });
 }
 
-/** SPL Token `CloseAccount` (instruction 9) — ATA must have zero balance. */
+// SPL Token `CloseAccount` (instruction 9) — ATA must have zero balance.
+
 export function createCloseAccountInstruction(
   account: PublicKey,
   destination: PublicKey,
@@ -98,7 +102,8 @@ export function createCloseAccountInstruction(
   });
 }
 
-/** SPL Token `TransferChecked` (instruction 12). */
+// SPL Token `TransferChecked` (instruction 12).
+
 export function createTransferCheckedInstruction(
   source: PublicKey,
   mint: PublicKey,

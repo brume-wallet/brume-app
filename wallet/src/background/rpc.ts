@@ -1,4 +1,4 @@
-import { getAuthToken, verifyTeeRpcIntegrity } from "@magicblock-labs/ephemeral-rollups-sdk";
+import { verifyTeeRpcIntegrity } from "@magicblock-labs/ephemeral-rollups-sdk";
 import {
   Connection,
   Keypair,
@@ -12,9 +12,15 @@ import {
   NETWORKS,
   SOL_BASE_UNITS_PER_SOL,
   SOL_WRAPPED_MINT,
+  magicblockPerEphemeralAuthHttp,
+  magicblockPerEphemeralSkipTeeIntegrityVerify,
   magicblockPerEphemeralSubmitHttp,
   type NetworkId,
 } from "@/shared/constants";
+import {
+  detailedTransactionFailureMessage,
+  serializeUnknownForLog,
+} from "@/shared/errors";
 import { base64ToBytes } from "@/shared/crypto";
 import {
   TOKEN_2022_PROGRAM_ID,
@@ -27,6 +33,8 @@ import {
   tokenProgramPubkey,
   type TokenProgramKind,
 } from "@/shared/spl-token-inline";
+import { fetchBrumePerTransferUnsigned } from "./api-client";
+import { getPerAuthToken } from "./per-auth";
 import {
   paymentsGetIsMintInitialized,
   paymentsGetPrivateBalance,
@@ -37,6 +45,210 @@ import {
   paymentsPostSplWithdraw,
   type UnsignedPaymentTransaction,
 } from "./payments-api";
+
+// MagicBlock Payments API returns legacy transactions; PER submits need TEE auth + Bearer token.
+
+function formatTeeIntegrityFailure(e: unknown): string {
+  if (e instanceof Error) {
+    const m = e.message;
+    if (m === "[object Object]" || m.includes("[object Object]")) {
+      return (
+        "PER /quote returned a non-string error (SDK bug). " +
+        "On devnet, enable skip via magicblockPerEphemeralSkipTeeIntegrityVerify."
+      );
+    }
+    return m;
+  }
+  if (e !== null && typeof e === "object") {
+    try {
+      return JSON.stringify(e);
+    } catch {
+      return String(e);
+    }
+  }
+  return String(e);
+}
+
+function amountToApiNumber(raw: bigint): number {
+  if (raw > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error("Amount too large");
+  }
+  return Number(raw);
+}
+
+// PER HTTP RPC with session token (/auth/challenge, /auth/login) + submit URL (may differ on devnet).
+async function ephemeralAuthedConnection(
+  network: NetworkId,
+  signer: Keypair,
+): Promise<Connection> {
+  const rpcUrl = magicblockPerEphemeralSubmitHttp(network).replace(/\/+$/, "");
+  const authUrl = magicblockPerEphemeralAuthHttp(network);
+  if (magicblockPerEphemeralSkipTeeIntegrityVerify(network)) {
+    console.warn(
+      "[Brume] Skipping verifyTeeRpcIntegrity on devnet (PER /quote + TEE pipeline); using PER /auth only.",
+    );
+  } else {
+    try {
+      const ok = await verifyTeeRpcIntegrity(rpcUrl);
+      if (!ok) throw new Error("Ephemeral RPC integrity check returned false");
+    } catch (e) {
+      throw new Error(
+        `Ephemeral RPC integrity check failed: ${formatTeeIntegrityFailure(e)}`,
+      );
+    }
+  }
+  const { token } = await getPerAuthToken(
+    authUrl,
+    signer.publicKey,
+    async (message) => nacl.sign.detached(message, signer.secretKey),
+  );
+  return new Connection(rpcUrl, {
+    commitment: "confirmed",
+    httpHeaders: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Sign wallet-owned keys on API-built legacy tx; send to base or ephemeral per unsigned.sendTo.
+async function signAndSendLegacyPaymentTransaction(params: {
+  network: NetworkId;
+  rpcUrlOverride?: string | null;
+  signer: Keypair;
+  unsigned: UnsignedPaymentTransaction;
+  // When the Payments API omits sendTo (some PER private paths).
+  defaultSendToWhenMissing?: "base" | "ephemeral";
+}): Promise<string> {
+  const wire = base64ToBytes(params.unsigned.transactionBase64);
+  const tx = Transaction.from(wire);
+  tx.partialSign(params.signer);
+  const raw = tx.serialize();
+
+  const sendTo =
+    params.unsigned.sendTo ??
+    params.defaultSendToWhenMissing ??
+    "base";
+
+  // Devnet shield / PER flows move as fast as the rollup; waiting for "confirmed" delays
+  // success and lets a stale Brume indexer win over fresh RPC reads. Use processed there.
+  const confirmCommitment =
+    params.network === "devnet" ? "processed" : "confirmed";
+
+  let rpcForLogs: Connection | null = null;
+
+  try {
+    if (sendTo === "ephemeral") {
+      rpcForLogs = await ephemeralAuthedConnection(params.network, params.signer);
+      // ER / PER: preflight simulation often fails even when the tx is valid on the rollup.
+      const sig = await rpcForLogs.sendRawTransaction(raw, {
+        skipPreflight: true,
+        maxRetries: 3,
+        preflightCommitment: confirmCommitment,
+      });
+      await rpcForLogs.confirmTransaction(
+        {
+          signature: sig,
+          blockhash: params.unsigned.recentBlockhash,
+          lastValidBlockHeight: params.unsigned.lastValidBlockHeight,
+        },
+        confirmCommitment,
+      );
+      return sig;
+    }
+
+    rpcForLogs = getConnection(params.network, params.rpcUrlOverride);
+    const sig = await rpcForLogs.sendRawTransaction(raw, {
+      skipPreflight: false,
+      preflightCommitment: confirmCommitment,
+    });
+    await rpcForLogs.confirmTransaction(
+      {
+        signature: sig,
+        blockhash: params.unsigned.recentBlockhash,
+        lastValidBlockHeight: params.unsigned.lastValidBlockHeight,
+      },
+      confirmCommitment,
+    );
+    return sig;
+  } catch (e) {
+    const message = await detailedTransactionFailureMessage(e, rpcForLogs);
+    const logPayload = {
+      sendTo,
+      network: params.network,
+      rpcUrlOverride: params.rpcUrlOverride ?? null,
+      unsignedKind: params.unsigned.kind,
+      instructionCount: params.unsigned.instructionCount,
+      recentBlockhash: params.unsigned.recentBlockhash,
+      lastValidBlockHeight: params.unsigned.lastValidBlockHeight,
+      feePayer: params.signer.publicKey.toBase58(),
+      error: serializeUnknownForLog(e),
+      detailedMessage: message,
+    };
+    console.error(
+      `[Brume] MagicBlock Payments transaction failed\n${JSON.stringify(logPayload, null, 2)}`,
+    );
+    throw new Error(message);
+  }
+}
+
+async function sendRawTransactionWithDetailedLogs(
+  conn: Connection,
+  raw: Uint8Array,
+  blockhash: string,
+  lastValidBlockHeight: number,
+  sendOpts: {
+    skipPreflight?: boolean;
+    maxRetries?: number;
+    preflightCommitment?: "confirmed" | "finalized" | "processed";
+  },
+  logContext: Record<string, unknown>,
+): Promise<string> {
+  try {
+    const sig = await conn.sendRawTransaction(raw, sendOpts);
+    await conn.confirmTransaction(
+      { signature: sig, blockhash, lastValidBlockHeight },
+      "confirmed",
+    );
+    return sig;
+  } catch (e) {
+    const message = await detailedTransactionFailureMessage(e, conn);
+    const logPayload = {
+      ...logContext,
+      error: serializeUnknownForLog(e),
+      detailedMessage: message,
+    };
+    console.error(
+      `[Brume] Transaction failed\n${JSON.stringify(logPayload, null, 2)}`,
+    );
+    throw new Error(message);
+  }
+}
+
+// Posts initialize-mint once if is-mint-initialized is false (required before deposit/transfer).
+async function ensurePaymentsMintInitializedForSpl(p: {
+  mintAddress: string;
+  network: NetworkId;
+  payerB58: string;
+  signer: Keypair;
+  rpcUrlOverride?: string | null;
+}): Promise<void> {
+  const ok = await paymentsGetIsMintInitialized(
+    p.mintAddress,
+    p.network,
+    p.rpcUrlOverride,
+  );
+  if (ok) return;
+  const initUnsigned = await paymentsPostInitializeMint({
+    payer: p.payerB58,
+    mint: p.mintAddress,
+    network: p.network,
+    rpcUrlOverride: p.rpcUrlOverride,
+  });
+  await signAndSendLegacyPaymentTransaction({
+    network: p.network,
+    rpcUrlOverride: p.rpcUrlOverride,
+    signer: p.signer,
+    unsigned: initUnsigned,
+  });
+}
 
 export function resolveRpcUrl(
   network: NetworkId,
@@ -116,115 +328,23 @@ export async function sendSol(params: {
   );
   tx.sign(params.from);
   const raw = tx.serialize();
-  const sig = await conn.sendRawTransaction(raw, {
-    skipPreflight: false,
-    preflightCommitment: "confirmed",
-  });
-  await conn.confirmTransaction(
-    { signature: sig, blockhash, lastValidBlockHeight },
-    "confirmed",
-  );
-  return sig;
-}
-
-function amountToApiNumber(raw: bigint): number {
-  if (raw > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new Error("Amount too large");
-  }
-  return Number(raw);
-}
-
-async function ephemeralAuthedConnection(
-  network: NetworkId,
-  signer: Keypair,
-): Promise<Connection> {
-  const rpcUrl = magicblockPerEphemeralSubmitHttp(network);
-  const ok = await verifyTeeRpcIntegrity(rpcUrl);
-  if (!ok) throw new Error("Ephemeral RPC integrity check failed");
-  const { token } = await getAuthToken(
-    rpcUrl,
-    signer.publicKey,
-    async (message) => nacl.sign.detached(message, signer.secretKey),
-  );
-  return new Connection(rpcUrl, {
-    commitment: "confirmed",
-    httpHeaders: { Authorization: `Bearer ${token}` },
-  });
-}
-
-async function signAndSendLegacyPaymentTransaction(params: {
-  network: NetworkId;
-  rpcUrlOverride?: string | null;
-  signer: Keypair;
-  unsigned: UnsignedPaymentTransaction;
-}): Promise<string> {
-  const wire = base64ToBytes(params.unsigned.transactionBase64);
-  const tx = Transaction.from(wire);
-  tx.partialSign(params.signer);
-  const raw = tx.serialize();
-
-  const sendTo = params.unsigned.sendTo ?? "base";
-  if (sendTo === "ephemeral") {
-    const conn = await ephemeralAuthedConnection(params.network, params.signer);
-    const sig = await conn.sendRawTransaction(raw, {
-      skipPreflight: false,
-      preflightCommitment: "confirmed",
-    });
-    const latest = await conn.getLatestBlockhash();
-    await conn.confirmTransaction(
-      { signature: sig, ...latest },
-      "confirmed",
-    );
-    return sig;
-  }
-
-  const conn = getConnection(params.network, params.rpcUrlOverride);
-  const sig = await conn.sendRawTransaction(raw, {
-    skipPreflight: false,
-    preflightCommitment: "confirmed",
-  });
-  await conn.confirmTransaction(
+  return sendRawTransactionWithDetailedLogs(
+    conn,
+    raw,
+    blockhash,
+    lastValidBlockHeight,
+    { skipPreflight: false, preflightCommitment: "confirmed" },
     {
-      signature: sig,
-      blockhash: params.unsigned.recentBlockhash,
-      lastValidBlockHeight: params.unsigned.lastValidBlockHeight,
+      flow: "sendSol",
+      network: params.network,
+      from: params.from.publicKey.toBase58(),
+      to: params.toAddress,
+      lamports: transferBaseUnits.toString(),
     },
-    "confirmed",
   );
-  return sig;
 }
 
-async function ensurePaymentsMintInitializedForSpl(p: {
-  mintAddress: string;
-  network: NetworkId;
-  payerB58: string;
-  signer: Keypair;
-  rpcUrlOverride?: string | null;
-}): Promise<void> {
-  const ok = await paymentsGetIsMintInitialized(
-    p.mintAddress,
-    p.network,
-    p.rpcUrlOverride,
-  );
-  if (ok) return;
-  const initUnsigned = await paymentsPostInitializeMint({
-    payer: p.payerB58,
-    mint: p.mintAddress,
-    network: p.network,
-    rpcUrlOverride: p.rpcUrlOverride,
-  });
-  await signAndSendLegacyPaymentTransaction({
-    network: p.network,
-    rpcUrlOverride: p.rpcUrlOverride,
-    signer: p.signer,
-    unsigned: initUnsigned,
-  });
-}
-
-// ---------------------------------------------------------------------------
-// SOL send — try private wSOL on PER via Payments API, else standard SOL
-// ---------------------------------------------------------------------------
-
+// Private wSOL on PER when possible; devnet surfaces errors; mainnet falls back to native SOL transfer.
 export async function sendSolPreferMagicBlockPrivate(params: {
   network: NetworkId;
   from: Keypair;
@@ -267,6 +387,7 @@ export async function sendSolPreferMagicBlockPrivate(params: {
       rpcUrlOverride: params.rpcUrlOverride,
       signer: params.from,
       unsigned: transferUnsigned,
+      defaultSendToWhenMissing: "ephemeral",
     });
     return { signature: sig, route: "private" };
   } catch (e) {
@@ -333,10 +454,7 @@ export async function readMintForTransfer(
   return { decimals: dec, tokenProgram };
 }
 
-// ---------------------------------------------------------------------------
-// SPL send — try private transfer via Payments API, fall back to standard
-// ---------------------------------------------------------------------------
-
+// Private SPL on PER when possible; devnet surfaces errors; mainnet falls back to on-chain SPL transfer.
 export async function sendSplPreferMagicBlockPrivate(params: {
   network: NetworkId;
   from: Keypair;
@@ -377,6 +495,7 @@ export async function sendSplPreferMagicBlockPrivate(params: {
       rpcUrlOverride: params.rpcUrlOverride,
       signer: params.from,
       unsigned: transferUnsigned,
+      defaultSendToWhenMissing: "ephemeral",
     });
     return { signature: sig, route: "private" };
   } catch (e) {
@@ -396,9 +515,7 @@ export async function sendSplPreferMagicBlockPrivate(params: {
   }
 }
 
-/**
- * Private send from shielded (ephemeral) balance to another user (ephemeral).
- */
+// Shielded (ephemeral) balance → recipient ephemeral; fails if private balance too low.
 export async function sendSplPrivateEphemeral(params: {
   network: NetworkId;
   from: Keypair;
@@ -438,23 +555,34 @@ export async function sendSplPrivateEphemeral(params: {
     rpcUrlOverride: params.rpcUrlOverride,
   });
 
-  const transferUnsigned = await paymentsPostSplTransfer({
-    from: fromB58,
-    to: toTrim,
-    mint: params.mintAddress,
-    amount: amountToApiNumber(amountRaw),
-    visibility: "private",
-    fromBalance: "ephemeral",
-    toBalance: "ephemeral",
-    network: params.network,
-    rpcUrlOverride: params.rpcUrlOverride,
-  });
+  const amountNum = amountToApiNumber(amountRaw);
+  const transferUnsigned =
+    (await fetchBrumePerTransferUnsigned({
+      from: fromB58,
+      to: toTrim,
+      mint: params.mintAddress.trim(),
+      amount: amountNum,
+      network: params.network,
+      rpcUrlOverride: params.rpcUrlOverride ?? null,
+    })) ??
+    (await paymentsPostSplTransfer({
+      from: fromB58,
+      to: toTrim,
+      mint: params.mintAddress.trim(),
+      amount: amountNum,
+      visibility: "private",
+      fromBalance: "ephemeral",
+      toBalance: "ephemeral",
+      network: params.network,
+      rpcUrlOverride: params.rpcUrlOverride,
+    }));
 
   const sig = await signAndSendLegacyPaymentTransaction({
     network: params.network,
     rpcUrlOverride: params.rpcUrlOverride,
     signer: params.from,
     unsigned: transferUnsigned,
+    defaultSendToWhenMissing: "ephemeral",
   });
   return { signature: sig, route: "private" };
 }
@@ -517,22 +645,28 @@ export async function sendSplToken(params: {
 
   tx.sign(params.from);
   const raw = tx.serialize();
-  const sig = await conn.sendRawTransaction(raw, {
-    skipPreflight: false,
-    preflightCommitment: "confirmed",
-  });
-  await conn.confirmTransaction(
-    { signature: sig, blockhash, lastValidBlockHeight },
-    "confirmed",
+  return sendRawTransactionWithDetailedLogs(
+    conn,
+    raw,
+    blockhash,
+    lastValidBlockHeight,
+    { skipPreflight: false, preflightCommitment: "confirmed" },
+    {
+      flow: "sendSplToken",
+      network: params.network,
+      mint: params.mintAddress,
+      from: owner.toBase58(),
+      to: params.toAddress,
+      amountRaw: amountRaw.toString(),
+    },
   );
-  return sig;
 }
 
 export type BurnSplTokenResult = {
   signature: string;
   mintAddress: string;
   burnAll: boolean;
-  /** Smallest units remaining in the ATA; `null` when the ATA was closed. */
+  // Remaining smallest units, or null when burn-all closed the ATA.
   remainingAmountRaw: string | null;
 };
 
@@ -593,13 +727,20 @@ export async function burnSplToken(params: {
 
   tx.sign(params.from);
   const raw = tx.serialize();
-  const sig = await conn.sendRawTransaction(raw, {
-    skipPreflight: false,
-    preflightCommitment: "confirmed",
-  });
-  await conn.confirmTransaction(
-    { signature: sig, blockhash, lastValidBlockHeight },
-    "confirmed",
+  const sig = await sendRawTransactionWithDetailedLogs(
+    conn,
+    raw,
+    blockhash,
+    lastValidBlockHeight,
+    { skipPreflight: false, preflightCommitment: "confirmed" },
+    {
+      flow: "burnSplToken",
+      network: params.network,
+      mint: params.mintAddress,
+      owner: owner.toBase58(),
+      burnAll,
+      amountRaw: amountRaw.toString(),
+    },
   );
   return {
     signature: sig,
@@ -609,10 +750,30 @@ export async function burnSplToken(params: {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Shield balances — Payments API (base + ephemeral)
-// ---------------------------------------------------------------------------
+// Smallest-unit SPL balance for `owner` ATA at `mint`, read at the given commitment (default processed).
 
+export async function fetchSplAtaBalanceRawForOwner(
+  params: {
+    network: NetworkId;
+    ownerB58: string;
+    mintAddress: string;
+    rpcUrlOverride?: string | null;
+  },
+  commitment: "processed" | "confirmed" = "processed",
+): Promise<string> {
+  const conn = getConnection(params.network, params.rpcUrlOverride);
+  const owner = new PublicKey(params.ownerB58.trim());
+  const mint = new PublicKey(params.mintAddress.trim());
+  const { tokenProgram } = await readMintForTransfer(conn, mint);
+  const programId = tokenProgramPubkey(tokenProgram);
+  const ata = getAssociatedTokenAddressSync(mint, owner, programId);
+  const acc = await conn.getAccountInfo(ata, commitment);
+  if (!acc) return "0";
+  const bal = await conn.getTokenAccountBalance(ata, commitment);
+  return bal.value.amount;
+}
+
+// Base-layer ATA balance + PER private balance from Payments API (queries, not on-chain reads for private leg).
 export async function fetchShieldBalanceInfo(params: {
   network: NetworkId;
   rpcUrlOverride?: string | null;
@@ -629,12 +790,22 @@ export async function fetchShieldBalanceInfo(params: {
   const owner = params.ownerAddress.trim();
 
   const [baseBalanceRaw, privateBalanceRaw] = await Promise.all([
-    paymentsGetSplBalance(
-      owner,
-      params.mintAddress,
-      params.network,
-      params.rpcUrlOverride,
-    ).catch(() => "0"),
+    params.network === "devnet"
+      ? fetchSplAtaBalanceRawForOwner(
+          {
+            network: params.network,
+            ownerB58: owner,
+            mintAddress: params.mintAddress,
+            rpcUrlOverride: params.rpcUrlOverride,
+          },
+          "processed",
+        ).catch(() => "0")
+      : paymentsGetSplBalance(
+          owner,
+          params.mintAddress,
+          params.network,
+          params.rpcUrlOverride,
+        ).catch(() => "0"),
     paymentsGetPrivateBalance(
       owner,
       params.mintAddress,
@@ -649,10 +820,6 @@ export async function fetchShieldBalanceInfo(params: {
     privateBalanceRaw,
   };
 }
-
-// ---------------------------------------------------------------------------
-// Shield / unshield — Payments API
-// ---------------------------------------------------------------------------
 
 export async function shieldSplToken(params: {
   network: NetworkId;
@@ -762,7 +929,7 @@ export async function signAllTransactionBytes(
   return out;
 }
 
-/** Off-chain message signature (raw bytes), detached Ed25519. */
+// Detached Ed25519 over raw bytes (dApp signMessage).
 export function signMessageBytes(message: Uint8Array, signer: Keypair): Uint8Array {
   return nacl.sign.detached(message, signer.secretKey);
 }

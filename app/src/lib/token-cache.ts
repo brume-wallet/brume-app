@@ -59,7 +59,8 @@ export async function metaSet(
       },
     });
   } catch {
-    /* write-through: swallow errors so the API still returns */
+        // write-through: swallow errors so the API still returns
+
   }
 }
 

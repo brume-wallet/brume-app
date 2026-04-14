@@ -1,6 +1,7 @@
 import type { NetworkId } from "./constants";
 
-/** Block explorer used for transaction and account links from the wallet. */
+// Block explorer used for transaction and account links from the wallet.
+
 export type ExplorerId = "solana" | "solscan" | "orb" | "solana_fm";
 
 export const EXPLORER_OPTIONS: readonly {
@@ -39,9 +40,9 @@ function solanaFmCluster(network: NetworkId): string {
   return network === "devnet" ? "?cluster=devnet" : "";
 }
 
-/**
- * URL to view a transaction signature on the chosen explorer.
- */
+// 
+// URL to view a transaction signature on the chosen explorer.
+
 export function explorerTxUrl(
   explorer: ExplorerId,
   network: NetworkId,
@@ -68,9 +69,9 @@ export function explorerTxUrl(
   }
 }
 
-/**
- * URL to view an account / generic address (wallet, program, etc.).
- */
+// 
+// URL to view an account / generic address (wallet, program, etc.).
+
 export function explorerAddressUrl(
   explorer: ExplorerId,
   network: NetworkId,
@@ -97,9 +98,9 @@ export function explorerAddressUrl(
   }
 }
 
-/**
- * SPL mint — Solscan uses /token/; others treat the mint as a normal address.
- */
+// 
+// SPL mint — Solscan uses /token/; others treat the mint as a normal address.
+
 export function explorerMintUrl(
   explorer: ExplorerId,
   network: NetworkId,

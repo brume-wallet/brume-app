@@ -19,7 +19,8 @@ function shortPk(pk: string, head = 4, tail = 4): string {
   return `${pk.slice(0, head)}…${pk.slice(-tail)}`;
 }
 
-/** Human-readable ticker for activity lines (matches on-chain / Metaplex metadata). */
+// Human-readable ticker for activity lines (matches on-chain / Metaplex metadata).
+
 function displaySymbolFromMeta(meta: TokenMetaResolved, mint: string): string {
   const sym = meta.symbol?.trim();
   if (sym && sym.length <= 24) return sym.slice(0, 20);
@@ -104,7 +105,8 @@ export async function attachActivityLogos(
         [...mints],
       );
     } catch {
-      /* DAS optional */
+            // DAS optional
+
     }
   }
 

@@ -4,7 +4,8 @@ import { PrismaClient } from "../generated/prisma/client";
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createClient(): PrismaClient {
-  /** Pooled URL (Supabase Transaction pooler) preferred at runtime; fall back to direct. */
+    // Pooled URL (Supabase Transaction pooler) preferred at runtime; fall back to direct.
+
   const connectionString =
     process.env.DATABASE_URL?.trim() || process.env.DIRECT_URL?.trim();
   if (!connectionString) {

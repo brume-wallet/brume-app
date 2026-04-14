@@ -1,7 +1,7 @@
-/**
- * SLIP-0010 Ed25519 private-key derivation (Solana BIP44 paths), Uint8Array-only.
- * Replaces `ed25519-hd-key` + Node `Buffer` so MV3 service workers never touch `process`.
- */
+// 
+// SLIP-0010 Ed25519 private-key derivation (Solana BIP44 paths), Uint8Array-only.
+// Replaces `ed25519-hd-key` + Node `Buffer` so MV3 service workers never touch `process`.
+
 import { hmac } from "@noble/hashes/hmac";
 import { sha512 } from "@noble/hashes/sha2";
 
@@ -41,7 +41,7 @@ function childKey(
   };
 }
 
-/** 64-byte BIP39 seed → 32-byte Ed25519 seed for `Keypair.fromSeed`. */
+// 64-byte BIP39 seed → 32-byte Ed25519 seed for Keypair.fromSeed.
 export function deriveEd25519Path(path: string, bip39Seed: Uint8Array): Uint8Array {
   if (!PATH_RE.test(path)) {
     throw new Error("Invalid derivation path");

@@ -3,7 +3,8 @@ import { Drawer as DrawerPrimitive } from "vaul";
 import { cn } from "@/lib/utils";
 
 const Drawer = ({
-  /** Extension popups: scaling the page behind the sheet looks odd. */
+    // Extension popups: scaling the page behind the sheet looks odd.
+
   shouldScaleBackground = false,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (

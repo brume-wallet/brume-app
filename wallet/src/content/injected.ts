@@ -94,7 +94,8 @@ function emit(ev: string, ...args: unknown[]): void {
     try {
       fn(...args);
     } catch {
-      /* ignore */
+            // ignore
+
     }
   });
 }
@@ -170,5 +171,6 @@ window.brume = brume;
 try {
   window.solana = brume;
 } catch {
-  /* Some hosts (e.g. Supabase dashboard) define read-only window.solana. */
+    // Some hosts (e.g. Supabase dashboard) define read-only window.solana.
+
 }

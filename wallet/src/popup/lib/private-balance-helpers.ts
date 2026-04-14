@@ -1,4 +1,5 @@
-/** Private (shield) balance raw string is a positive integer. */
+// Private (shield) balance raw string is a positive integer.
+
 export function privateRawPositive(raw: string | null | undefined): boolean {
   if (raw == null || raw === "") return false;
   try {
@@ -29,7 +30,8 @@ export function walletHumanFromRaw(
   }
 }
 
-/** Approximate USD for the private leg using wallet row fiat as reference. */
+// Approximate USD for the private leg using wallet row fiat as reference.
+
 export function fiatForPrivateLeg(
   walletHuman: number,
   walletFiatUsd: number | null | undefined,

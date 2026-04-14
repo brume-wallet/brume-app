@@ -16,7 +16,8 @@ interface DasAsset {
   interface?: string;
   content?: {
     json_uri?: string;
-    /** Helius sometimes camelCases this */
+        // Helius sometimes camelCases this
+
     jsonUri?: string;
     metadata?: { name?: string; symbol?: string };
     links?: { image?: string };
@@ -54,10 +55,10 @@ function dasMetadataUri(a: DasAsset): string | null {
   return null;
 }
 
-/**
- * Map one DAS asset for metadata. Does not invent mint-truncated names — those are not
- * useful and get cached as if they were real (e.g. SPL with only token_info.decimals).
- */
+// 
+// Map one DAS asset for metadata. Does not invent mint-truncated names — those are not
+// useful and get cached as if they were real (e.g. SPL with only token_info.decimals).
+
 export function mapDasAssetToTokenMeta(
   a: DasAsset,
 ): HeliusDasTokenMeta | null {
@@ -69,7 +70,8 @@ export function mapDasAssetToTokenMeta(
   const decimals =
     typeof a.token_info?.decimals === "number" ? a.token_info.decimals : null;
 
-  /** Prefer token_info.symbol (often correct for SPL); metadata can be sparse/wrong. */
+    // Prefer token_info.symbol (often correct for SPL); metadata can be sparse/wrong.
+
   const rawSym = (
     a.token_info?.symbol ??
     a.content?.metadata?.symbol ??
@@ -80,7 +82,8 @@ export function mapDasAssetToTokenMeta(
   const hasText = Boolean(rawName || rawSym);
   const hasOffChainPointer = Boolean(metadataUri);
   const hasLogo = Boolean(logoUri);
-  /** Single junk char in metadata.name with no symbol (seen on some SPL index rows). */
+    // Single junk char in metadata.name with no symbol (seen on some SPL index rows).
+
   const trivialInline =
     rawName.length <= 1 && !rawSym && !hasLogo && !hasOffChainPointer;
 
@@ -88,7 +91,8 @@ export function mapDasAssetToTokenMeta(
     return null;
   }
 
-  /** Decimals-only index row — let Metaplex / JSON / Jupiter handle the rest. */
+    // Decimals-only index row — let Metaplex / JSON / Jupiter handle the rest.
+
   if (!hasText && !hasLogo && !hasOffChainPointer && decimals != null) {
     return null;
   }

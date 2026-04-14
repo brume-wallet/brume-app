@@ -48,9 +48,14 @@ export async function fetchRpcTokenHoldings(
     { id: TOKEN_2022_PROGRAM_ID, kind: "token-2022" },
   ];
   for (const { id, kind } of programs) {
-    const res = await conn.getParsedTokenAccountsByOwner(owner, {
-      programId: id,
-    });
+    let res;
+    try {
+      res = await conn.getParsedTokenAccountsByOwner(owner, {
+        programId: id,
+      });
+    } catch {
+      continue;
+    }
     for (const { account } of res.value) {
       const data = account.data as ParsedAccountData;
       const parsed = data.parsed;

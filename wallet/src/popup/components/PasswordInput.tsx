@@ -8,6 +8,8 @@ export function PasswordInput(props: {
   autoFocus?: boolean;
   id?: string;
   name?: string;
+  /** Merged onto the underlying input (e.g. `text-center` for unlock). */
+  className?: string;
 }) {
   return (
     <Input
@@ -17,7 +19,10 @@ export function PasswordInput(props: {
       id={props.id}
       name={props.name}
       placeholder={props.placeholder ?? "Password"}
-      className={cn("h-11 rounded-2xl px-4 py-2.5 text-[15px]")}
+      className={cn(
+        "h-11 rounded-2xl px-4 py-2.5 text-[15px]",
+        props.className,
+      )}
       value={props.value}
       onChange={(e) => props.onChange(e.target.value)}
     />

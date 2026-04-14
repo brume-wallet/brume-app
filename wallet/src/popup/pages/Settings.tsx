@@ -1,25 +1,197 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Copy,
+  Eye,
+  EyeOff,
+  Globe,
+  Lock,
+  PanelRight,
+  Server,
+  Square,
+  Timer,
+  Users,
+} from "lucide-react";
 import {
   EXPLORER_OPTIONS,
   type ExplorerId,
   type NetworkId,
 } from "@/shared/constants";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import type { ExtensionMessage } from "@/shared/types";
+import { cn } from "@/lib/utils";
+import { applyUiSurfaceClass, readUiSurface, type UiSurface } from "../lib/ui-shell";
 import { ensureRpcHostPermission } from "../lib/rpc-permissions";
 import * as msg from "../messaging";
 import { useWalletStore } from "../store";
-import { cn } from "@/lib/utils";
+import { PasswordInput } from "../components/PasswordInput";
+
+const font = "font-sans";
+const secondary = "text-muted-foreground";
+const chevronMuted = "text-muted-foreground/60";
+
+function sendBg<T>(message: ExtensionMessage): Promise<T> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (res: unknown) => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        reject(new Error(err.message));
+        return;
+      }
+      const r = res as
+        | { ok: true; payload?: unknown }
+        | { ok: false; error: { code: number; message: string } }
+        | null
+        | undefined;
+      if (!r) {
+        reject(new Error("No response"));
+        return;
+      }
+      if (!r.ok) {
+        reject(new Error(r.error?.message ?? "Unknown error"));
+        return;
+      }
+      resolve(r.payload as T);
+    });
+  });
+}
+
+function SettingsRow({
+  icon,
+  title,
+  detail,
+  onClick,
+  destructive,
+  children,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  detail?: string;
+  onClick?: () => void;
+  destructive?: boolean;
+  children?: React.ReactNode;
+}) {
+  const clickable = !!onClick;
+  return (
+    <div
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={() => onClick?.()}
+      onKeyDown={(e) => {
+        if (!clickable) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      className={cn(
+        "flex w-full items-center px-4 text-left transition-colors duration-100",
+        clickable ? "cursor-pointer hover:bg-secondary" : "cursor-default",
+      )}
+    >
+      {icon ? (
+        <div
+          className={cn(
+            "flex shrink-0 items-center pr-2.5",
+            destructive ? "text-destructive" : "text-muted-foreground",
+          )}
+        >
+          {icon}
+        </div>
+      ) : null}
+      <div className="flex min-w-0 flex-1 items-center justify-between border-b border-border py-2.5">
+        <span
+          className={cn(
+            font,
+            "text-[14px] font-normal leading-5",
+            destructive ? "text-destructive" : "text-foreground",
+          )}
+        >
+          {title}
+        </span>
+        <div className="flex shrink-0 items-center gap-1 pl-3">
+          {detail ? (
+            <span className={cn(font, "text-[14px] font-normal leading-5", secondary)}>
+              {detail}
+            </span>
+          ) : null}
+          {children}
+          {clickable && !children ? (
+            <ChevronRight className={cn("h-3.5 w-3.5", chevronMuted)} strokeWidth={2} />
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({
+  label,
+  children,
+}: {
+  label?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {label ? (
+        <span
+          className={cn(
+            font,
+            "pl-4 text-[12px] font-medium uppercase leading-4 tracking-wide",
+            secondary,
+          )}
+        >
+          {label}
+        </span>
+      ) : null}
+      <div
+        className={cn(
+          "overflow-hidden rounded-2xl",
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SegmentedControl<T extends string | number>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="mx-3 mb-2 mt-1 flex gap-1 rounded-xl bg-secondary p-1">
+      {options.map((opt) => (
+        <button
+          key={String(opt.value)}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={cn(
+            font,
+            "min-w-0 flex-1 rounded-lg border-none py-2 text-[13px] font-medium leading-5 transition-all duration-150",
+            value === opt.value
+              ? "bg-card text-card-foreground shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+              : cn("bg-transparent", secondary),
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function Settings() {
+  const navigate = useNavigate();
   const { state, refresh } = useWalletStore();
   const [sites, setSites] = useState<
     Array<{ origin: string; publicKey: string; connectedAt: number }>
@@ -30,6 +202,19 @@ export function Settings() {
   const [rpcSaveErr, setRpcSaveErr] = useState<string | null>(null);
   const [savingRpc, setSavingRpc] = useState(false);
   const [savingExplorer, setSavingExplorer] = useState(false);
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [revealKey, setRevealKey] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+  const [showRpc, setShowRpc] = useState(false);
+  const [uiSurface, setUiSurfaceState] = useState<UiSurface>("sidepanel");
+  const [switchMessage, setSwitchMessage] = useState<string | null>(null);
+  const [lockTimeout, setLockTimeout] = useState(15);
+  const [networkChoice, setNetworkChoice] = useState<NetworkId | null>(null);
+
+  const [pkPassword, setPkPassword] = useState("");
+  const [pkBusy, setPkBusy] = useState(false);
+  const [pkVerified, setPkVerified] = useState(false);
 
   useEffect(() => {
     void msg.listConnectedSites().then((r) => setSites(r.sites));
@@ -39,12 +224,57 @@ export function Settings() {
     setRpcInput(state?.rpcUrlOverride ?? "");
   }, [state?.rpcUrlOverride]);
 
+  useEffect(() => {
+    if (state?.network) setNetworkChoice(state.network);
+  }, [state?.network]);
+
+  useEffect(() => {
+    void readUiSurface().then(setUiSurfaceState);
+  }, []);
+
+  useEffect(() => {
+    const requestId = crypto.randomUUID();
+    void sendBg<{ minutes: number }>({ type: "GET_AUTO_LOCK_TIMEOUT", requestId }).then(
+      (r) => setLockTimeout(r.minutes),
+    );
+  }, []);
+
+  const handleCopyExported = useCallback(() => {
+    if (!exported) return;
+    void navigator.clipboard.writeText(exported);
+    setCopiedKey(true);
+    window.setTimeout(() => setCopiedKey(false), 2000);
+  }, [exported]);
+
+  const handleRevealKey = useCallback(() => {
+    setRevealKey((v) => !v);
+  }, []);
+
+  const handleVerifyPrivateKeyPassword = useCallback(async () => {
+    const pw = pkPassword;
+    if (!pw) return;
+    setErr(null);
+    setPkBusy(true);
+    try {
+      const r = await msg.exportSecret(pw);
+      setExported(r.secretKeyBase64);
+      setPkVerified(true);
+      setRevealKey(true);
+      setPkPassword("");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Incorrect password");
+    } finally {
+      setPkBusy(false);
+    }
+  }, [pkPassword]);
 
   if (!state) return null;
 
   async function switchNetwork(n: NetworkId) {
-    await msg.setNetwork(n);
-    await refresh();
+    setNetworkChoice(n);
+    // Don't block the UI; keep existing cached data visible while background refreshes.
+    void msg.setNetwork(n).then(() => refresh());
+    navigate("/", { replace: true });
   }
 
   async function selectExplorer(id: ExplorerId) {
@@ -58,22 +288,11 @@ export function Settings() {
     }
   }
 
-  async function doExport() {
-    setErr(null);
-    setExported(null);
-    try {
-      const r = await msg.exportSecret();
-      setExported(r.secretKeyBase64);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Export failed");
-    }
-  }
-
   async function saveRpc() {
     setRpcSaveErr(null);
     const trimmed = rpcInput.trim();
     if (!trimmed) {
-      setRpcSaveErr("Paste a full HTTPS RPC URL, or tap Reset to use the default.");
+      setRpcSaveErr("Paste a full HTTPS RPC URL, or reset to use the default.");
       return;
     }
     try {
@@ -116,97 +335,210 @@ export function Settings() {
     }
   }
 
+  const pk = state.publicKey ?? "";
+  const truncatedKey = pk ? `${pk.slice(0, 4)}…${pk.slice(-4)}` : null;
+
+  async function onSurfaceChange(mode: UiSurface) {
+    if (mode === uiSurface) return;
+    try {
+      const prev = uiSurface;
+      await msg.setUiSurface(mode);
+      applyUiSurfaceClass(mode);
+      setUiSurfaceState(mode);
+      if (mode === "popup") {
+        window.setTimeout(() => window.close(), 200);
+      } else {
+        // If we're currently a popup, close it so the next open uses the side panel.
+        if (prev === "popup") {
+          window.setTimeout(() => window.close(), 200);
+        } else {
+          setSwitchMessage(
+            "Open Brume from the toolbar and choose the side panel.",
+          );
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-5 px-4 pb-24 pt-4">
-      <h1 className="text-lg font-semibold text-foreground">Settings</h1>
+    <div className="relative flex flex-col gap-5 px-3 pb-24 pt-4">
+      <h1 className={cn(font, "px-1 text-[18px] font-semibold leading-7 text-foreground")}>
+        Settings
+      </h1>
+        <Section label="Network">
+          <SegmentedControl
+            options={[
+              { value: "mainnet-beta" as const, label: "Mainnet" },
+              { value: "devnet" as const, label: "Devnet" },
+            ]}
+            value={networkChoice ?? state.network}
+            onChange={(v) => void switchNetwork(v)}
+          />
+        </Section>
 
-      <Link
-        to="/accounts"
-        className={cn(
-          buttonVariants({ variant: "secondary" }),
-          "flex h-12 w-full items-center justify-center rounded-2xl text-[15px] no-underline",
-        )}
-      >
-        Manage accounts
-      </Link>
-
-      <Button
-        type="button"
-        variant="secondary"
-        className="h-12 w-full rounded-2xl text-[15px]"
-        onClick={() => void msg.lockWallet().then(() => refresh())}
-      >
-        Lock wallet
-      </Button>
-
-      <Card size="sm" className="gap-3 py-4">
-        <CardHeader className="px-4 pb-0">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            RPC endpoint
-          </CardTitle>
-          <CardDescription className="text-[11px] leading-relaxed">
-            Default public RPCs are rate-limited. For heavier use, paste a provider URL
-            (QuickNode, Alchemy, etc.). Used for balance, signing, and on-chain sends.
-            Portfolio and activity use the Brume API URL from the shared app constants
-            (dev default: http://localhost:3001).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 pt-0">
-          <form
-            className="flex flex-col gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void saveRpc();
+        <Section label="Wallet">
+          {truncatedKey ? (
+            <SettingsRow
+              icon={<Globe className="h-[18px] w-[18px]" strokeWidth={2} />}
+              title="Address"
+              detail={truncatedKey}
+            >
+              <button
+                type="button"
+                className={cn(
+                  font,
+                  "flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[12px] font-medium leading-4 text-foreground",
+                  "transition-colors hover:bg-secondary active:scale-[0.98]",
+                )}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void navigator.clipboard.writeText(pk);
+                  setCopiedAddress(true);
+                  window.setTimeout(() => setCopiedAddress(false), 1500);
+                }}
+              >
+                {copiedAddress ? (
+                  <>
+                    <Check
+                      className="h-3.5 w-3.5 text-[#34C759]"
+                      strokeWidth={2}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" strokeWidth={2} />
+                  </>
+                )}
+                Copy
+              </button>
+            </SettingsRow>
+          ) : null}
+          <SettingsRow
+            icon={<Eye className="h-[18px] w-[18px]" strokeWidth={2} />}
+            title="Private key"
+            onClick={() => {
+              setShowPrivateKey(!showPrivateKey);
+              setRevealKey(false);
+              setExported(null);
+              setErr(null);
+              setPkPassword("");
+              setPkBusy(false);
+              setPkVerified(false);
             }}
           >
-            <Input
-              className="h-9 rounded-xl px-3 text-xs"
-              placeholder="https://…"
-              value={rpcInput}
-              onChange={(e) => setRpcInput(e.target.value)}
-              spellCheck={false}
-              autoComplete="off"
-              name="rpcUrl"
-            />
-            {rpcSaveErr ? (
-              <p className="text-xs text-destructive">{rpcSaveErr}</p>
-            ) : null}
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                size="sm"
-                className="h-9 flex-1 rounded-xl text-xs"
-                disabled={savingRpc}
+            {showPrivateKey ? (
+              <ChevronUp className={cn("h-3.5 w-3.5", chevronMuted)} strokeWidth={2} />
+            ) : (
+              <ChevronDown className={cn("h-3.5 w-3.5", chevronMuted)} strokeWidth={2} />
+            )}
+          </SettingsRow>
+          {showPrivateKey ? (
+            <div className="mx-3 mb-2 flex flex-col gap-2 rounded-xl bg-accent p-3">
+              <span
+                className={cn(
+                  font,
+                  "text-center text-[12px] leading-4 text-destructive",
+                )}
               >
-                Save RPC
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="h-9 flex-1 rounded-xl text-xs"
-                disabled={savingRpc}
-                onClick={() => void clearRpc()}
-              >
-                Reset default
-              </Button>
+                Never share your private key. Anyone with it has full access to your wallet.
+              </span>
+              {!pkVerified ? (
+                <form
+                  className="flex flex-col gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void handleVerifyPrivateKeyPassword();
+                  }}
+                >
+                  <PasswordInput
+                    value={pkPassword}
+                    onChange={setPkPassword}
+                    placeholder="Enter your password"
+                    className="bg-card"
+                  />
+                  <button
+                    type="submit"
+                    disabled={pkBusy || !pkPassword}
+                    className={cn(
+                      font,
+                      "h-10 w-full rounded-full bg-primary text-[13px] font-medium text-primary-foreground transition-opacity disabled:opacity-40",
+                    )}
+                  >
+                    {pkBusy ? "Checking…" : "Continue"}
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <div className="relative max-h-20 overflow-y-auto rounded-lg bg-secondary py-2.5 pl-3 pr-10 font-mono text-[11px] leading-4 text-foreground break-all">
+                    {revealKey && exported
+                      ? exported
+                      : "••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"}
+                    <button
+                      type="button"
+                      onClick={() => void handleRevealKey()}
+                      className="absolute right-2 top-1/2 flex -translate-y-1/2 border-none bg-transparent p-0.5 text-muted-foreground"
+                      aria-label={revealKey ? "Hide" : "Reveal"}
+                    >
+                      {revealKey ? (
+                        <EyeOff className="h-3.5 w-3.5" strokeWidth={2} />
+                      ) : (
+                        <Eye className="h-3.5 w-3.5" strokeWidth={2} />
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+              {err ? (
+                <p className={cn(font, "text-center text-[12px] text-destructive")} role="alert">
+                  {err}
+                </p>
+              ) : null}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={!exported || !pkVerified}
+                  onClick={() => handleCopyExported()}
+                  className={cn(
+                    font,
+                    "flex flex-1 items-center justify-center gap-1.5 rounded-lg border-none bg-primary py-2 text-[13px] font-medium leading-4 text-primary-foreground transition-colors duration-150 disabled:opacity-40",
+                  )}
+                >
+                  {copiedKey ? <Check className="h-3.5 w-3.5" strokeWidth={2} /> : <Copy className="h-3.5 w-3.5" strokeWidth={2} />}
+                  {copiedKey ? "Copied!" : "Copy"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPrivateKey(false);
+                    setRevealKey(false);
+                    setExported(null);
+                    setErr(null);
+                    setPkPassword("");
+                    setPkBusy(false);
+                    setPkVerified(false);
+                  }}
+                  className={cn(
+                    font,
+                    "flex flex-1 items-center justify-center rounded-lg border-none bg-secondary py-2 text-[13px] font-medium leading-4 text-secondary-foreground transition-colors duration-150",
+                  )}
+                >
+                  Hide
+                </button>
+              </div>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          ) : null}
+          <SettingsRow
+            icon={<Users className="h-[18px] w-[18px]" strokeWidth={2} />}
+            title="Manage accounts"
+            onClick={() => navigate("/accounts")}
+          />
+        </Section>
 
-      <Card size="sm" className="gap-3 py-4">
-        <CardHeader className="px-4 pb-0">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Block explorer
-          </CardTitle>
-          <CardDescription className="text-[11px] leading-relaxed">
-            Links for transactions and token mints (Activity, send success, token
-            detail).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 pt-0">
-          <div className="grid grid-cols-1 gap-2">
+        <Section label="Explorer">
+          <div className="mx-3 mb-2 mt-1 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
             {EXPLORER_OPTIONS.map((opt) => (
               <button
                 key={opt.id}
@@ -214,87 +546,107 @@ export function Settings() {
                 disabled={savingExplorer}
                 onClick={() => void selectExplorer(opt.id)}
                 className={cn(
-                  "flex flex-col items-start rounded-xl px-3 py-2.5 text-left transition-colors active:scale-[0.99]",
+                  font,
+                  "rounded-lg border-none px-2 py-2 text-[12px] font-medium leading-4 transition-all duration-150 disabled:opacity-50",
                   state.explorerId === opt.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                    ? "bg-card text-card-foreground shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                    : cn("bg-transparent", secondary),
                 )}
               >
-                <span className="text-xs font-semibold">{opt.label}</span>
-                {opt.subtitle ? (
-                  <span
-                    className={cn(
-                      "text-[10px] opacity-90",
-                      state.explorerId === opt.id
-                        ? "text-primary-foreground/90"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {opt.subtitle}
-                  </span>
-                ) : null}
+                {opt.label}
               </button>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </Section>
 
-      <Card size="sm" className="gap-3 py-4">
-        <CardHeader className="px-4 pb-0">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Network
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pt-0">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => void switchNetwork("devnet")}
-              className={cn(
-                "flex-1 rounded-xl py-2.5 text-xs font-semibold transition-colors duration-200 active:scale-[0.98]",
-                state.network === "devnet"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground",
-              )}
-            >
-              Devnet
-            </button>
-            <button
-              type="button"
-              onClick={() => void switchNetwork("mainnet-beta")}
-              className={cn(
-                "flex-1 rounded-xl py-2.5 text-xs font-semibold transition-colors duration-200 active:scale-[0.98]",
-                state.network === "mainnet-beta"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground",
-              )}
-            >
-              Mainnet
-            </button>
+        <Section label="RPC">
+          <SettingsRow
+            icon={<Server className="h-[18px] w-[18px]" strokeWidth={2} />}
+            title="RPC endpoint"
+            onClick={() => setShowRpc(!showRpc)}
+          >
+            {showRpc ? (
+              <ChevronUp className={cn("h-3.5 w-3.5", chevronMuted)} strokeWidth={2} />
+            ) : (
+              <ChevronDown className={cn("h-3.5 w-3.5", chevronMuted)} strokeWidth={2} />
+            )}
+          </SettingsRow>
+          <div
+            className={cn(
+              "overflow-hidden transition-[max-height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              showRpc ? "max-h-[320px] opacity-100" : "max-h-0 opacity-0",
+            )}
+          >
+            <div className="mx-3 mb-2 flex flex-col gap-2 rounded-xl bg-secondary p-3">
+                <p className={cn(font, "text-[11px] leading-relaxed text-muted-foreground")}>
+                  Optional HTTPS RPC for balances and sends. Portfolio and activity use the Brume API.
+                </p>
+                <input
+                  className={cn(
+                    font,
+                    "h-9 w-full rounded-lg border border-border bg-card px-3 text-xs text-foreground outline-none",
+                  )}
+                  placeholder="https://…"
+                  value={rpcInput}
+                  onChange={(e) => setRpcInput(e.target.value)}
+                  spellCheck={false}
+                  autoComplete="off"
+                  name="rpcUrl"
+                />
+                {rpcSaveErr ? (
+                  <p className="text-[11px] text-destructive" role="alert">
+                    {rpcSaveErr}
+                  </p>
+                ) : null}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={savingRpc}
+                    onClick={() => void saveRpc()}
+                    className={cn(
+                      font,
+                      "flex-1 rounded-lg border-none bg-primary py-2 text-xs font-medium text-primary-foreground disabled:opacity-50",
+                    )}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingRpc}
+                    onClick={() => void clearRpc()}
+                    className={cn(
+                      font,
+                      "flex-1 rounded-lg border-none bg-secondary py-2 text-xs font-medium text-secondary-foreground disabled:opacity-50",
+                    )}
+                  >
+                    Reset
+                  </button>
+                </div>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </Section>
 
-      <Card size="sm" className="gap-3 py-4">
-        <CardHeader className="px-4 pb-0">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Connected sites
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pt-0">
+        <Section label="Connected sites">
           {sites.length === 0 ? (
-            <p className="text-xs text-muted-foreground">None yet.</p>
+            <p className={cn(font, "px-4 py-3 text-[13px] leading-5", secondary)}>
+              None yet.
+            </p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="divide-y divide-border">
               {sites.map((s) => (
                 <li
                   key={s.origin}
-                  className="flex items-center justify-between gap-2 text-xs"
+                  className="flex items-center justify-between gap-2 px-4 py-2.5"
                 >
-                  <span className="truncate text-foreground">{s.origin}</span>
+                  <span className={cn(font, "min-w-0 truncate text-[13px] text-foreground")}>
+                    {s.origin}
+                  </span>
                   <button
                     type="button"
-                    className="shrink-0 text-destructive transition-opacity hover:opacity-90"
+                    className={cn(
+                      font,
+                      "shrink-0 border-none bg-transparent text-[13px] font-medium text-destructive transition-opacity hover:opacity-80",
+                    )}
                     onClick={() =>
                       void msg.disconnectSite(s.origin).then(() =>
                         msg.listConnectedSites().then((r) => setSites(r.sites)),
@@ -307,41 +659,87 @@ export function Settings() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </Section>
 
-      <Card size="sm" className="gap-3 border-destructive/30 py-4">
-        <CardHeader className="px-4 pb-0">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wide text-destructive">
-            Export secret key
-          </CardTitle>
-          <CardDescription className="text-[11px]">
-            Never share this. Available while the wallet is unlocked.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 pt-0">
-          <div className="flex flex-col gap-3">
-            {err ? (
-              <p className="text-xs text-destructive" role="alert">
-                {err}
-              </p>
-            ) : null}
-            <Button
-              type="button"
-              variant="destructive"
-              className="w-full rounded-xl text-xs"
-              onClick={() => void doExport()}
-            >
-              Reveal base64 secret
-            </Button>
+        <Section label="Extension">
+          <div className="px-4">
+            <div className="flex items-center justify-between border-b border-border py-2.5">
+              <div className="flex items-center gap-2.5">
+                {uiSurface === "sidepanel" ? (
+                  <PanelRight className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={2} />
+                ) : (
+                  <Square className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={2} />
+                )}
+                <span className={cn(font, "text-[14px] font-normal leading-5 text-foreground")}>
+                  View mode
+                </span>
+              </div>
+            </div>
           </div>
-          {exported && (
-            <p className="mt-3 break-all font-mono text-[10px] text-muted-foreground">
-              {exported}
-            </p>
+          <SegmentedControl
+            options={[
+              { value: "sidepanel" as const, label: "Side panel" },
+              { value: "popup" as const, label: "Popup" },
+            ]}
+            value={uiSurface}
+            onChange={(v) => void onSurfaceChange(v)}
+          />
+          <SettingsRow
+            icon={<Lock className="h-[18px] w-[18px]" strokeWidth={2} />}
+            title="Lock now"
+            onClick={() => void msg.lockWallet().then(() => refresh())}
+            destructive
+          />
+          <div className="px-4">
+            <div className="flex items-center py-2.5">
+              <div className="flex items-center gap-3">
+                <Timer className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={2} />
+                <span className={cn(font, "text-[14px] font-normal leading-5 text-foreground")}>
+                  Auto-lock
+                </span>
+              </div>
+            </div>
+          </div>
+          <SegmentedControl
+            options={[
+              { value: 5, label: "5m" },
+              { value: 15, label: "15m" },
+              { value: 30, label: "30m" },
+              { value: 60, label: "1h" },
+              { value: 0, label: "Never" },
+            ]}
+            value={lockTimeout}
+            onChange={(v) => {
+              setLockTimeout(v);
+              const requestId = crypto.randomUUID();
+              void sendBg<{ minutes: number }>({
+                type: "SET_AUTO_LOCK_TIMEOUT",
+                requestId,
+                payload: { minutes: v },
+              });
+            }}
+          />
+        </Section>
+
+      {switchMessage ? (
+        <button
+          type="button"
+          className={cn(
+            "absolute inset-0 z-[50] flex cursor-default items-center justify-center border-none bg-background/80 px-6 backdrop-blur-md",
           )}
-        </CardContent>
-      </Card>
+          onClick={() => setSwitchMessage(null)}
+          aria-label="Dismiss"
+        >
+          <span
+            className={cn(
+              font,
+              "pointer-events-none max-w-[280px] text-center text-[15px] font-semibold leading-[22px] text-foreground",
+            )}
+          >
+            {switchMessage}
+          </span>
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -9,7 +9,8 @@ export async function GET(req: Request) {
     await prisma.$queryRaw`SELECT 1`;
     dbOk = true;
   } catch {
-    /* db unreachable */
+        // db unreachable
+
   }
 
   return jsonResponse(req, {

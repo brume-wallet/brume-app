@@ -32,7 +32,7 @@ function TokenAvatar(props: {
         className="absolute inset-1 rounded-full"
         style={{
           background:
-            "conic-gradient(from 200deg, oklch(0.74 0.11 195), oklch(0.5 0.08 252), oklch(0.74 0.11 195))",
+            "conic-gradient(from 200deg, rgba(249,54,60,0.35), rgba(0,0,0,0.08), rgba(249,54,60,0.35))",
         }}
       />
       <div className="absolute inset-[3px] flex items-center justify-center rounded-full bg-card text-[11px] font-bold text-foreground">
@@ -42,45 +42,52 @@ function TokenAvatar(props: {
   );
 }
 
-/** Passed through React Router for back navigation on nested flows. */
+// Passed through React Router for back navigation on nested flows.
+
 export type TokenRowNavState = {
   sendBackTo?: string;
   tokenDetailBackTo?: string;
-  /** Deep-link into Shield (e.g. from Send → Private balance). */
+    // Deep-link into Shield (e.g. from Send → Private balance).
+
   shieldTokenMint?: string;
   shieldInitialMode?: "shield" | "unshield";
-  /** Open SPL send spending shielded (ephemeral) balance. */
+    // Open SPL send spending shielded (ephemeral) balance.
+
   fromPrivateBalance?: boolean;
 };
 
 export function TokenRow(props: {
-  /** When set, the row navigates here (e.g. send flow). */
+    // When set, the row navigates here (e.g. send flow).
+
   to?: string;
-  /** Optional `location.state` for the navigation (e.g. `{ sendBackTo: "/" }`). */
+    // Optional `location.state` for the navigation (e.g. `{ sendBackTo: "/" }`).
+
   navState?: TokenRowNavState;
   symbol: string;
   name: string;
-  /** Integer string of smallest units (e.g. 10⁻⁹ SOL per unit for SOL). */
+    // Integer string of smallest units (e.g. 10⁻⁹ SOL per unit for SOL).
+
   amountRaw: string | null;
   decimals?: number;
   simpleMode: boolean;
   logoUri?: string | null;
-  /** When true, show registry-style check (token is in the bundled Solana token list). */
+    // When true, show registry-style check (token is in the bundled Solana token list).
+
   verified?: boolean;
-  /**
-   * When set, show a secondary USD line (Jupiter spot where available).
-   * Omit or null hides USD (e.g. token not listed on Jupiter).
-   */
+    // 
+  // When set, show a secondary USD line (Jupiter spot where available).
+  // Omit or null hides USD (e.g. token not listed on Jupiter).
+
   fiatUsdApprox?: number | null;
-  /**
-   * Ephemeral (shielded) balance from Payments API, smallest units.
-   * When &gt; 0, shows the default shield badge (unless `forceShieldBadge` is false).
-   */
+    // 
+  // Ephemeral (shielded) balance from Payments API, smallest units.
+  // When &gt; 0, shows the default shield badge (unless `forceShieldBadge` is false).
+
   privateBalanceRaw?: string | null;
-  /**
-   * When true, always show the shield badge (e.g. private-balance-only row on Send).
-   * When false, never show it from this row even if `privateBalanceRaw` is set.
-   */
+    // 
+  // When true, always show the shield badge (e.g. private-balance-only row on Send).
+  // When false, never show it from this row even if `privateBalanceRaw` is set.
+
   forceShieldBadge?: boolean;
 }) {
   const decimals = props.decimals ?? 9;

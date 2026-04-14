@@ -22,7 +22,8 @@ export function SurfaceToggle(props: {
       props.onSurfaceChange(next);
       window.close();
     } catch {
-      /* ignore */
+            // ignore
+
     }
   }
 

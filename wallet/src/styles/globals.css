@@ -4,10 +4,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Brume — aligned with marketing (x.html / app): void bg, lavender primary, teal secondary */
+/* Extension-inspired palette (light shell + red accent + iOS neutrals) */
 @theme {
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Instrument Serif", Georgia, serif;
+  --font-sans: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-extension-accent: #f9363c;
+  --color-extension-muted-ink: rgba(60, 60, 67, 0.6);
+  --color-extension-icon: #3c3c43;
+  --color-extension-disabled: #cccddc;
 }
 
 html,
@@ -81,6 +85,120 @@ body.brume-popup {
   }
 }
 
+/* Extension-style motion */
+@keyframes pin-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  50%,
+  90% {
+    transform: translateX(-6px);
+  }
+  30%,
+  70% {
+    transform: translateX(6px);
+  }
+}
+
+.brume-pin-shake {
+  animation: pin-shake 0.5s ease;
+}
+
+@keyframes mascot-nod {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(4deg);
+  }
+  75% {
+    transform: rotate(-4deg);
+  }
+}
+
+.brume-mascot-nod {
+  animation: mascot-nod 0.6s ease-in-out 2;
+  transform-origin: center bottom;
+}
+
+@keyframes chevron-bounce {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+.brume-chevron-bounce {
+  animation: chevron-bounce 1s ease-in-out infinite;
+}
+
+@keyframes send-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.brume-send-spin {
+  animation: send-spin 1s linear infinite;
+}
+
+@keyframes sidebar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.brume-sidebar-spin {
+  animation: sidebar-spin 0.8s linear infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.brume-skeleton-pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes brume-phase-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.brume-phase-crossfade {
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brume-pin-shake,
+  .brume-mascot-nod,
+  .brume-chevron-bounce,
+  .brume-send-spin,
+  .brume-sidebar-spin,
+  .brume-skeleton-pulse {
+    animation: none;
+  }
+  .brume-phase-crossfade {
+    transition: none;
+  }
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -123,74 +241,80 @@ body.brume-popup {
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Light: extension shell (#F5F5F5), black CTAs, red accent */
 :root {
-  --background: oklch(0.985 0.008 250);
-  --foreground: oklch(0.18 0.03 252);
-  --card: oklch(1 0.006 250);
-  --card-foreground: oklch(0.18 0.03 252);
-  --popover: oklch(1 0.006 250);
-  --popover-foreground: oklch(0.18 0.03 252);
-  --primary: oklch(0.42 0.12 195);
-  --primary-foreground: oklch(0.98 0.01 250);
-  --secondary: oklch(0.94 0.02 252);
-  --secondary-foreground: oklch(0.22 0.03 252);
-  --muted: oklch(0.94 0.015 252);
-  --muted-foreground: oklch(0.45 0.03 252);
-  --accent: oklch(0.92 0.025 195);
-  --accent-foreground: oklch(0.22 0.04 252);
-  --destructive: oklch(0.55 0.22 25);
-  --border: oklch(0.88 0.02 252);
-  --input: oklch(0.88 0.02 252);
-  --ring: oklch(0.55 0.12 195);
-  --chart-1: oklch(0.55 0.12 195);
-  --chart-2: oklch(0.5 0.08 252);
-  --chart-3: oklch(0.45 0.06 252);
-  --chart-4: oklch(0.4 0.05 252);
-  --chart-5: oklch(0.35 0.04 252);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.97 0.01 250);
-  --sidebar-foreground: oklch(0.18 0.03 252);
-  --sidebar-primary: oklch(0.42 0.12 195);
-  --sidebar-primary-foreground: oklch(0.98 0.01 250);
-  --sidebar-accent: oklch(0.94 0.02 252);
-  --sidebar-accent-foreground: oklch(0.22 0.03 252);
-  --sidebar-border: oklch(0.88 0.02 252);
-  --sidebar-ring: oklch(0.55 0.12 195);
+  --background: #f5f5f5;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(0, 0, 0, 0.04);
+  --secondary-foreground: #000000;
+  --muted: #ebebeb;
+  --muted-foreground: rgba(60, 60, 67, 0.6);
+  --accent: rgba(249, 54, 60, 0.14);
+  --accent-foreground: #3c3c43;
+  --destructive: #ff3b30;
+  --border: rgba(0, 0, 0, 0.06);
+  --input: rgba(0, 0, 0, 0.06);
+  --ring: #f9363c;
+  --chart-1: #f9363c;
+  --chart-2: #34c759;
+  --chart-3: rgba(60, 60, 67, 0.45);
+  --chart-4: #3c3c43;
+  --chart-5: #ebebeb;
+  --radius: 1rem;
+  --sidebar: #ebebeb;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #000000;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(249, 54, 60, 0.14);
+  --sidebar-accent-foreground: #3c3c43;
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+  --sidebar-ring: #f9363c;
+  --extension-accent: #f9363c;
+  --extension-success: #34c759;
+  --btn-disabled: #cccddc;
 }
 
 .dark {
-  /* Hex tokens from Brume marketing theme (x.html) */
-  --background: #050506;
-  --foreground: #e3e1e9;
-  --card: #1a1b21;
-  --card-foreground: #e3e1e9;
-  --popover: #1e1f25;
-  --popover-foreground: #e3e1e9;
-  --primary: #c7bfff;
-  --primary-foreground: #2a039d;
-  --secondary: #292a2f;
-  --secondary-foreground: #e3e1e9;
-  --muted: #292a2f;
-  --muted-foreground: #c8c4d6;
-  --accent: #1e1f25;
-  --accent-foreground: #e3e1e9;
-  --destructive: #ffb4ab;
-  --border: #47455480;
-  --input: #292a2fa6;
-  --ring: #c7bfff73;
-  --chart-1: #c7bfff;
-  --chart-2: #4ddcc6;
-  --chart-3: #928f9f;
-  --chart-4: #d9c58b;
-  --chart-5: #8e7fff;
-  --sidebar: #0d0e13;
-  --sidebar-foreground: #e3e1e9;
-  --sidebar-primary: #c7bfff;
-  --sidebar-primary-foreground: #2a039d;
-  --sidebar-accent: #1a1b21;
-  --sidebar-accent-foreground: #e3e1e9;
-  --sidebar-border: #47455480;
-  --sidebar-ring: #c7bfff73;
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --card: #1a1a1a;
+  --card-foreground: #f5f5f5;
+  --popover: #1e1e1e;
+  --popover-foreground: #f5f5f5;
+  --primary: #f5f5f5;
+  --primary-foreground: #0a0a0a;
+  --secondary: rgba(255, 255, 255, 0.06);
+  --secondary-foreground: #f5f5f5;
+  --muted: #242424;
+  --muted-foreground: rgba(235, 235, 245, 0.6);
+  --accent: rgba(249, 54, 60, 0.22);
+  --accent-foreground: #f5f5f5;
+  --destructive: #ff453a;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #f9363c;
+  --chart-1: #f9363c;
+  --chart-2: #34c759;
+  --chart-3: rgba(235, 235, 245, 0.45);
+  --chart-4: #c8c8cc;
+  --chart-5: #2a2a2a;
+  --sidebar: #111111;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #f5f5f5;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: rgba(249, 54, 60, 0.2);
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #f9363c;
+  --extension-accent: #f9363c;
+  --extension-success: #34c759;
+  --btn-disabled: #3a3a3c;
 }
 
 @layer base {
@@ -205,6 +329,18 @@ body.brume-popup {
   }
   .dark ::selection,
   .dark *::selection {
-    background-color: rgba(199, 191, 255, 0.3);
+    background-color: rgba(249, 54, 60, 0.25);
+  }
+  /* Firefox: strip native control chrome (extension parity) */
+  button,
+  input,
+  textarea {
+    -moz-appearance: none;
+    appearance: none;
+  }
+  button::-moz-focus-inner,
+  input::-moz-focus-inner {
+    border: 0;
+    padding: 0;
   }
 }

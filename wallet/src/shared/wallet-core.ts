@@ -7,7 +7,8 @@ import { deriveEd25519Path } from "./slip10-ed25519";
 
 const DEFAULT_PATH = "m/44'/501'/0'/0'";
 
-/** Valid BIP39 lengths per SOLANA_WALLET.md */
+// Valid BIP39 lengths per SOLANA_WALLET.md
+
 export function isValidMnemonicWordCount(words: string[]): boolean {
   const n = words.length;
   return [12, 15, 18, 21, 24].includes(n);
@@ -43,12 +44,12 @@ export function pathsForAccounts(count: number): string[] {
   return Array.from({ length: count }, (_, i) => `m/44'/501'/${i}'/0'`);
 }
 
-/**
- * Parse pasted secret key material: Base58 (Phantom / Solflare export), base64
- * (Brume export), hex (64 or 128 chars), JSON byte array `[0,1,…]` (32 or 64),
- * or space/comma-separated decimals. Optional JSON object with a string field
- * like `privateKey` / `secretKey`.
- */
+// 
+// Parse pasted secret key material: Base58 (Phantom / Solflare export), base64
+// (Brume export), hex (64 or 128 chars), JSON byte array `[0,1,…]` (32 or 64),
+// or space/comma-separated decimals. Optional JSON object with a string field
+// like `privateKey` / `secretKey`.
+
 export function parseSecretKeyImportInput(raw: string, depth = 0): Uint8Array {
   if (depth > 4) {
     throw new Error("Invalid private key");
@@ -87,7 +88,8 @@ export function parseSecretKeyImportInput(raw: string, depth = 0): Uint8Array {
         }
       }
     } catch {
-      /* fall through */
+            // fall through
+
     }
   }
 
@@ -133,7 +135,8 @@ export function parseSecretKeyImportInput(raw: string, depth = 0): Uint8Array {
         return from58;
       }
     } catch {
-      /* not valid base58 */
+            // not valid base58
+
     }
   }
 
@@ -143,7 +146,8 @@ export function parseSecretKeyImportInput(raw: string, depth = 0): Uint8Array {
       return fromB64;
     }
   } catch {
-    /* try comma-separated */
+        // try comma-separated
+
   }
 
   const parts = t.split(/[,\s]+/).filter(Boolean);

@@ -1,4 +1,5 @@
-/** Request host access for a custom JSON-RPC URL (Chrome MV3 optional_host_permissions). */
+// Request host access for a custom JSON-RPC URL (Chrome MV3 optional_host_permissions).
+
 export async function ensureRpcHostPermission(rpcUrl: string): Promise<boolean> {
   try {
     const u = new URL(rpcUrl.trim());

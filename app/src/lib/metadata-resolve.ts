@@ -43,7 +43,8 @@ async function ensureJupiterStrictLoaded(): Promise<void> {
         if (addr && logo) m.set(addr, logo);
       }
     } catch {
-      /* ignore */
+            // ignore
+
     }
     jupiterStrictCache = m;
   })();
@@ -194,7 +195,8 @@ function mintShortLabel(mint: string): string {
   return `${t.slice(0, 4)}…`;
 }
 
-/** True if cached labels are mint-derived placeholders (must not short-circuit resolve). */
+// True if cached labels are mint-derived placeholders (must not short-circuit resolve).
+
 function isMintDerivedPlaceholder(
   name: string,
   symbol: string,
@@ -213,7 +215,8 @@ function isMintDerivedPlaceholder(
   return false;
 }
 
-/** MV3 extension pages often allow https images only; upgrade http logos when possible. */
+// MV3 extension pages often allow https images only; upgrade http logos when possible.
+
 function preferHttpsLogoUri(uri: string | null): string | null {
   if (!uri || !uri.startsWith("http://")) return uri;
   try {
@@ -224,6 +227,64 @@ function preferHttpsLogoUri(uri: string | null): string | null {
   }
 }
 
+const PORTFOLIO_ENRICH_CONCURRENCY = 6;
+
+function looksGoodSymbolForMeta(sym: string): boolean {
+  const s = sym.trim();
+  if (!s || s === "?") return false;
+  return s.length <= 12;
+}
+
+function looksGoodNameForMeta(name: string): boolean {
+  const x = name.trim().toLowerCase();
+  if (!x || x === "unknown token") return false;
+  return true;
+}
+
+function mergeDasMetaIntoRow(
+  t: PortfolioTokenRow,
+  d: HeliusDasTokenMeta,
+): PortfolioTokenRow {
+  const symbol = looksGoodSymbolForMeta(d.symbol) ? d.symbol : t.symbol;
+  const name = looksGoodNameForMeta(d.name) ? d.name : t.name;
+  let decimals = t.decimals;
+  if (
+    d.decimals != null &&
+    Number.isFinite(d.decimals) &&
+    d.decimals >= 0 &&
+    d.decimals <= 18
+  ) {
+    decimals = d.decimals;
+  }
+  return {
+    ...t,
+    symbol,
+    name,
+    logoUri: d.logoUri ?? t.logoUri,
+    decimals,
+  };
+}
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  async function worker(): Promise<void> {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      results[i] = await fn(items[i]!);
+    }
+  }
+  const n = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return results;
+}
+
 function needsEnrichment(t: PortfolioTokenRow): boolean {
   const sym = (t.symbol ?? "").trim();
   const name = (t.name ?? "").trim().toLowerCase();
@@ -231,7 +292,8 @@ function needsEnrichment(t: PortfolioTokenRow): boolean {
   if (sym === "?" || sym === "") return true;
   if (name === "unknown token" || name === "") return true;
   if (isMintDerivedPlaceholder(t.name ?? "", t.symbol ?? "", t.mint)) return true;
-  /** Indexer gave image + title but left ticker as mint slice / empty — still resolve. */
+    // Indexer gave image + title but left ticker as mint slice / empty — still resolve.
+
   if (
     t.logoUri &&
     name !== "" &&
@@ -244,11 +306,13 @@ function needsEnrichment(t: PortfolioTokenRow): boolean {
 }
 
 export type ResolveTokenMetadataOptions = {
-  /** When set, DAS data from a parent batch (e.g. activity); skips a duplicate getAssetBatch for this mint. */
+    // When set, DAS data from a parent batch (e.g. activity); skips a duplicate getAssetBatch for this mint.
+
   dasPrefill?: HeliusDasTokenMeta | null;
 };
 
-/** Full metadata for one mint (DAS when available, Postgres, on-chain + off-chain fallbacks). */
+// Full metadata for one mint (DAS when available, Postgres, on-chain + off-chain fallbacks).
+
 export async function resolveTokenMetadata(
   network: NetworkId,
   mint: string,
@@ -285,7 +349,8 @@ export async function resolveTokenMetadata(
         const m = await heliusDasGetTokenMetadataBatch(apiKey, network, [mint]);
         dasRow = m.get(mint) ?? null;
       } catch {
-        /* DAS optional */
+                // DAS optional
+
       }
     }
   }
@@ -314,8 +379,10 @@ export async function resolveTokenMetadata(
     }
   }
 
-  const jup = await jupiterStrictLogoForMint(mint);
-  if (jup && !logoUri) logoUri = jup;
+  if (network !== "devnet") {
+    const jup = await jupiterStrictLogoForMint(mint);
+    if (jup && !logoUri) logoUri = jup;
+  }
 
   const onChain = await metaplexOnChainFields(conn, mint);
   if (onChain) {
@@ -335,7 +402,7 @@ export async function resolveTokenMetadata(
     }
   }
 
-  if (!logoUri) {
+  if (!logoUri && network !== "devnet") {
     const dex = await logoFromDexScreener(mint);
     if (dex) logoUri = dex;
   }
@@ -364,28 +431,73 @@ export async function enrichPortfolioRows(
   conn: Connection,
   tokens: PortfolioTokenRow[],
 ): Promise<PortfolioTokenRow[]> {
-  const out: PortfolioTokenRow[] = [];
-  for (const t of tokens) {
+  if (tokens.length === 0) return [];
+
+  const results: PortfolioTokenRow[] = new Array(tokens.length);
+  const indicesNeeding: number[] = [];
+
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i]!;
     if (!needsEnrichment(t)) {
-      out.push(t);
-      continue;
+      results[i] = t;
+    } else {
+      indicesNeeding.push(i);
     }
-    const m = await resolveTokenMetadata(network, t.mint, conn);
-    const decimalsResolved =
-      m.decimals != null &&
-      Number.isFinite(m.decimals) &&
-      m.decimals >= 0 &&
-      m.decimals <= 18
-        ? m.decimals
-        : t.decimals;
-    out.push({
-      ...t,
-      name: m.name || t.name,
-      symbol: m.symbol || t.symbol,
-      logoUri: m.logoUri ?? t.logoUri,
-      decimals: decimalsResolved,
-    });
-    await new Promise((r) => setTimeout(r, 40));
   }
-  return out;
+
+  if (indicesNeeding.length === 0) {
+    return results;
+  }
+
+  const needRows = indicesNeeding.map((i) => tokens[i]!);
+  const apiKey = process.env.HELIUS_API_KEY?.trim();
+  let dasByMint = new Map<string, HeliusDasTokenMeta>();
+  if (apiKey) {
+    try {
+      dasByMint = await heliusDasGetTokenMetadataBatch(
+        apiKey,
+        network,
+        needRows.map((t) => t.mint),
+      );
+    } catch {
+            // DAS optional
+
+    }
+  }
+
+  const preRows = needRows.map((t) => {
+    const d = dasByMint.get(t.mint);
+    return d ? mergeDasMetaIntoRow(t, d) : t;
+  });
+
+  const resolvedRows = await mapWithConcurrency(
+    preRows,
+    PORTFOLIO_ENRICH_CONCURRENCY,
+    async (t) => {
+      if (!needsEnrichment(t)) return t;
+      const m = await resolveTokenMetadata(network, t.mint, conn, {
+        dasPrefill: dasByMint.get(t.mint) ?? null,
+      });
+      const decimalsResolved =
+        m.decimals != null &&
+        Number.isFinite(m.decimals) &&
+        m.decimals >= 0 &&
+        m.decimals <= 18
+          ? m.decimals
+          : t.decimals;
+      return {
+        ...t,
+        name: m.name || t.name,
+        symbol: m.symbol || t.symbol,
+        logoUri: m.logoUri ?? t.logoUri,
+        decimals: decimalsResolved,
+      };
+    },
+  );
+
+  for (let j = 0; j < indicesNeeding.length; j++) {
+    results[indicesNeeding[j]!] = resolvedRows[j]!;
+  }
+
+  return results;
 }

@@ -1,9 +1,6 @@
 import type { Config } from "tailwindcss";
 
-/**
- * Brume marketing + app theme (aligned with x.html / design reference).
- * Semantic tokens mirror Material-style names used on the landing; `brume-*` aliases kept for API routes.
- */
+// Brume marketing + app theme. Semantic tokens mirror Material-style names; brume-* for API routes.
 const config: Config = {
   darkMode: "class",
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],

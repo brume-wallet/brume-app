@@ -1,22 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Copy01Icon } from "@hugeicons/core-free-icons";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrumeIcon } from "./BrumeIcon";
 import { NetworkBadge } from "./NetworkBadge";
-import { SurfaceToggle } from "./SurfaceToggle";
-import { readUiSurface, type UiSurface } from "../lib/ui-shell";
 import { truncateMiddle } from "../lib/format";
 import { useWalletStore } from "../store";
 
-/** Sticky top chrome: account + network (matches bottom nav treatment). */
+// Sticky top chrome: account + network (matches bottom nav treatment).
+
 export function MainShellHeader() {
   const navigate = useNavigate();
   const { state } = useWalletStore();
-  const [uiSurface, setUiSurface] = useState<UiSurface>("sidepanel");
+  const [copied, setCopied] = useState(false);
+  const copiedTimeout = useRef<number | null>(null);
 
   useEffect(() => {
-    void readUiSurface().then(setUiSurface);
+    return () => {
+      if (copiedTimeout.current != null) {
+        window.clearTimeout(copiedTimeout.current);
+        copiedTimeout.current = null;
+      }
+    };
   }, []);
 
   if (!state) return null;
@@ -28,6 +34,9 @@ export function MainShellHeader() {
   async function copyAddr() {
     if (!pk) return;
     await navigator.clipboard.writeText(pk);
+    setCopied(true);
+    if (copiedTimeout.current != null) window.clearTimeout(copiedTimeout.current);
+    copiedTimeout.current = window.setTimeout(() => setCopied(false), 1200);
   }
 
   return (
@@ -61,7 +70,11 @@ export function MainShellHeader() {
               onClick={() => void copyAddr()}
               aria-label="Copy address"
             >
-              <BrumeIcon icon={Copy01Icon} size={18} />
+              {copied ? (
+                <Check className="h-[18px] w-[18px] text-[#34C759]" strokeWidth={2} />
+              ) : (
+                <BrumeIcon icon={Copy01Icon} size={18} />
+              )}
             </Button>
           </div>
           {pk ? (
@@ -72,7 +85,6 @@ export function MainShellHeader() {
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <SurfaceToggle uiSurface={uiSurface} onSurfaceChange={setUiSurface} />
         <NetworkBadge network={state.network} />
       </div>
     </header>

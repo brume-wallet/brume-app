@@ -54,7 +54,8 @@ export async function GET(req: Request) {
       dasTokens = d.tokens;
       nativeFromDas = d.nativeLamports;
     } catch {
-      /* DAS optional */
+            // DAS optional
+
     }
   }
 

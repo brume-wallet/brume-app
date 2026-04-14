@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Refresh01Icon } from "@hugeicons/core-free-icons";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -37,6 +38,7 @@ export function Dashboard() {
     refetch: refetchUsdPrices,
   } = useJupiterPortfolioPrices();
   const [balanceRefreshing, setBalanceRefreshing] = useState(false);
+  const [balanceHidden, setBalanceHidden] = useState(false);
   const [batchShieldByMint, setBatchShieldByMint] = useState<Record<
     string,
     string
@@ -168,23 +170,40 @@ export function Dashboard() {
       ) : null}
 
       <div className="relative px-1 pt-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          className="absolute right-0 top-3 z-[1] text-muted-foreground hover:text-foreground"
-          aria-label="Refresh balance"
-          disabled={balanceRefreshing}
-          onClick={() => void onRefreshBalance()}
-        >
-          <BrumeIcon
-            icon={Refresh01Icon}
-            size={18}
-            className={balanceRefreshing ? "animate-spin" : undefined}
-          />
-        </Button>
+        <div className="absolute right-0 top-3 z-[1] flex items-center gap-0.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className="size-9 rounded-full bg-secondary text-[color:var(--extension-icon)] hover:bg-black/[0.08] dark:hover:bg-white/10"
+            aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+            onClick={() => setBalanceHidden((h) => !h)}
+          >
+            {balanceHidden ? (
+              <EyeOff size={20} strokeWidth={1.5} className="opacity-60" />
+            ) : (
+              <Eye size={20} strokeWidth={1.5} className="opacity-60" />
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className="size-9 rounded-full bg-secondary text-[color:var(--extension-icon)] hover:bg-black/[0.08] dark:hover:bg-white/10"
+            aria-label="Refresh balance"
+            disabled={balanceRefreshing}
+            onClick={() => void onRefreshBalance()}
+          >
+            <BrumeIcon
+              icon={Refresh01Icon}
+              size={18}
+              className={balanceRefreshing ? "brume-sidebar-spin" : undefined}
+            />
+          </Button>
+        </div>
         <BalanceCard
           balanceSolBaseUnits={state.balanceSolBaseUnits}
+          balanceHidden={balanceHidden}
           simpleMode={state.simpleMode}
           totalUsdApprox={totalUsdApprox}
           totalPortfolioSolApprox={totalPortfolioSolApprox}
@@ -194,7 +213,9 @@ export function Dashboard() {
       <ActionBar />
 
       <div className="border-b border-border pb-2 pt-2">
-        <span className="text-[15px] font-semibold text-foreground">Tokens</span>
+        <span className="text-base font-medium tracking-tight text-foreground">
+          Tokens
+        </span>
       </div>
 
       <TokenRow

@@ -2,10 +2,18 @@ import type { ExplorerId, NetworkId } from "./constants";
 import type { PortfolioTokenRow } from "@brume/shared";
 export type { PortfolioTokenRow };
 
-/** Extension ↔ popup / content message envelope */
+// Extension ↔ popup / content message envelope
+
 export type ExtensionMessage =
   | { type: "GET_STATE"; requestId: string }
   | { type: "GET_STATE_RESPONSE"; requestId: string; payload: WalletUiState }
+  | { type: "ACTIVITY_HEARTBEAT"; requestId: string }
+  | { type: "GET_AUTO_LOCK_TIMEOUT"; requestId: string }
+  | {
+      type: "SET_AUTO_LOCK_TIMEOUT";
+      requestId: string;
+      payload: { minutes: number };
+    }
   | {
       type: "CREATE_WALLET";
       requestId: string;
@@ -76,9 +84,11 @@ export type ExtensionMessage =
       payload: {
         mint: string;
         to: string;
-        /** Human-readable amount (decimal string), same style as SOL send. */
+                // Human-readable amount (decimal string), same style as SOL send.
+
         amount: string;
-        /** Spend from PER ephemeral shielded balance (not base ATA). */
+                // Spend from PER ephemeral shielded balance (not base ATA).
+
         fromPrivateBalance?: boolean;
       };
     }
@@ -87,7 +97,8 @@ export type ExtensionMessage =
       requestId: string;
       payload: {
         mint: string;
-        /** Human decimal amount, or `all` to burn full balance and close ATA. */
+                // Human decimal amount, or `all` to burn full balance and close ATA.
+
         amount: string;
       };
     }
@@ -184,56 +195,69 @@ export interface WalletUiState {
   hasVault: boolean;
   locked: boolean;
   publicKey: string | null;
-  /** Unlocked or last-selected account (for display while locked). */
+    // Unlocked or last-selected account (for display while locked).
+
   activeAccountId: string | null;
   accountLabel: string | null;
   accounts: WalletAccountSnapshot[];
   network: NetworkId;
-  /** Integer string: SOL balance in smallest units (10⁻⁹ SOL). */
+    // Integer string: SOL balance in smallest units (10⁻⁹ SOL).
+
   balanceSolBaseUnits: string | null;
-  /** Last balance/RPC failure (e.g. public RPC 403 from extension context). */
+    // Last balance/RPC failure (e.g. public RPC 403 from extension context).
+
   rpcError: string | null;
-  /** Last Brume indexer (Next API) failure — portfolio metadata; not the Solana RPC. */
+    // Last Brume indexer (Next API) failure — portfolio metadata; not the Solana RPC.
+
   indexerError: string | null;
-  /** When set, used instead of the built-in endpoint for this network. */
+    // When set, used instead of the built-in endpoint for this network.
+
   rpcUrlOverride: string | null;
-  /** Preferred block explorer for transaction and account links. */
+    // Preferred block explorer for transaction and account links.
+
   explorerId: ExplorerId;
-  /** Fungible tokens from Brume API; null if none / not loaded. */
+    // Fungible tokens from Brume API; null if none / not loaded.
+
   portfolioTokens: PortfolioTokenRow[] | null;
-  /**
-   * Last known shielded (ephemeral) balances from MagicBlock Payments API,
-   * keyed by mint (smallest units as decimal strings). Persisted in extension storage.
-   */
+    // 
+  // Last known shielded (ephemeral) balances from MagicBlock Payments API,
+  // keyed by mint (smallest units as decimal strings). Persisted in extension storage.
+
   shieldedBalancesByMint: Record<string, string>;
   simpleMode: boolean;
   pendingConnect: PendingConnectRequest | null;
   pendingSign: PendingSignRequest | null;
   blocklist: string[];
   allowlist: string[];
-  /** True when the vault can derive another account from the stored BIP39 root (Phantom-style HD). */
+    // True when the vault can derive another account from the stored BIP39 root (Phantom-style HD).
+
   hdDerivationAvailable: boolean;
 }
 
 export interface PendingConnectRequest {
-  /** Matches dApp promise id / approval id in popup */
+    // Matches dApp promise id / approval id in popup
+
   id: string;
   origin: string;
   tabId: number;
 }
 
 export interface PendingSignRequest {
-  /** UI / queue id */
+    // UI / queue id
+
   id: string;
-  /** Original request from injected (for postMessage resolve) */
+    // Original request from injected (for postMessage resolve)
+
   dappRequestId: string;
   kind: "transaction" | "allTransactions" | "message";
   origin: string;
   tabId: number;
-  /** Base64 serialized tx or txs */
+    // Base64 serialized tx or txs
+
   serializedTransaction?: string;
   serializedTransactions?: string[];
-  /** Base64 message bytes */
+    // Base64 message bytes
+
   message?: string;
 }
 
@@ -255,7 +279,8 @@ export interface StoredKeystore {
   address: string;
 }
 
-/** One Solana account (encrypted secret + per-site connections). */
+// One Solana account (encrypted secret + per-site connections).
+
 export interface WalletAccount {
   id: string;
   label: string;
@@ -263,25 +288,30 @@ export interface WalletAccount {
   connectedOrigins: Record<string, { publicKey: string; connectedAt: number }>;
 }
 
-/** Multi-account vault (version 2). */
+// Multi-account vault (version 2).
+
 export interface PersistedVault {
   version: 2;
   activeAccountId: string;
   accounts: WalletAccount[];
   network: NetworkId;
   rpcUrlOverride?: string | null;
-  /** Block explorer for links; omitted = Solana Explorer. */
+    // Block explorer for links; omitted = Solana Explorer.
+
   explorerId?: ExplorerId;
   allowlist: string[];
   blocklist: string[];
   simpleMode: boolean;
-  /** Encrypted normalized BIP39 phrase for deriving m/44'/501'/n'/0' siblings. */
+    // Encrypted normalized BIP39 phrase for deriving m/44'/501'/n'/0' siblings.
+
   encryptedRootMnemonic?: StoredKeystore;
-  /** Next path account index for HD derivation (account 0 uses index 0). */
+    // Next path account index for HD derivation (account 0 uses index 0).
+
   hdNextAccountIndex?: number;
 }
 
-/** @deprecated Single-wallet shape; migrated to PersistedVault on read. */
+// @deprecated Single-wallet shape; migrated to PersistedVault on read.
+
 export interface PersistedWallet {
   keystore: StoredKeystore;
   network: NetworkId;
@@ -298,7 +328,8 @@ export interface WalletAccountSnapshot {
   address: string;
 }
 
-/** Injected ↔ content (window.postMessage) */
+// Injected ↔ content (window.postMessage)
+
 export const BRUME_CHANNEL = "brume_wallet_channel";
 
 export type InjectedRequest =

@@ -43,6 +43,7 @@ import {
   sendSolPreferMagicBlockPrivate,
   sendSplPreferMagicBlockPrivate,
   sendSplPrivateEphemeral,
+  fetchSplAtaBalanceRawForOwner,
   shieldSplToken,
   signAllTransactionBytes,
   signMessageBytes,
@@ -66,6 +67,10 @@ import {
 } from "./ui-cache";
 
 const UI_SURFACE_KEY = "brume_ui_surface";
+const AUTO_LOCK_TIMEOUT_KEY = "brume_auto_lock_timeout_minutes";
+const LAST_ACTIVITY_AT_KEY = "brume_last_activity_at";
+const AUTO_LOCK_ALARM = "brume-auto-lock-check";
+const DEFAULT_AUTO_LOCK_MINUTES = 15;
 
 function isDecryptFailure(e: unknown): boolean {
   if (e instanceof DOMException) {
@@ -100,6 +105,30 @@ async function loadAndApplyUiSurface(): Promise<void> {
 
 void loadAndApplyUiSurface();
 
+// --- Auto-lock: periodic alarm check ---
+try {
+  chrome.alarms.create(AUTO_LOCK_ALARM, { periodInMinutes: 1 });
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === AUTO_LOCK_ALARM) void checkAutoLock();
+  });
+} catch {
+  // alarms may be unavailable in some test contexts
+}
+
+// Ensure defaults exist.
+void (async () => {
+  const raw = await chrome.storage.local.get([
+    AUTO_LOCK_TIMEOUT_KEY,
+    LAST_ACTIVITY_AT_KEY,
+  ]);
+  if (typeof raw[AUTO_LOCK_TIMEOUT_KEY] !== "number") {
+    await chrome.storage.local.set({ [AUTO_LOCK_TIMEOUT_KEY]: DEFAULT_AUTO_LOCK_MINUTES });
+  }
+  if (typeof raw[LAST_ACTIVITY_AT_KEY] !== "number") {
+    await chrome.storage.local.set({ [LAST_ACTIVITY_AT_KEY]: 0 });
+  }
+})();
+
 let sessionKeypair: Keypair | null = null;
 let sessionAccountId: string | null = null;
 let sessionVaultPassword: string | null = null;
@@ -112,6 +141,50 @@ let lastIndexerError: string | null = null;
 
 let pendingConnect: PendingConnectRequest | null = null;
 const signQueue = new ApprovalQueue<PendingSignRequest>();
+
+let lastActivityAt = 0;
+
+async function getAutoLockTimeoutMinutes(): Promise<number> {
+  const raw = await chrome.storage.local.get(AUTO_LOCK_TIMEOUT_KEY);
+  const v = raw[AUTO_LOCK_TIMEOUT_KEY];
+  return typeof v === "number" && Number.isFinite(v) && v >= 0
+    ? v
+    : DEFAULT_AUTO_LOCK_MINUTES;
+}
+
+async function setAutoLockTimeoutMinutes(minutes: number): Promise<void> {
+  await chrome.storage.local.set({ [AUTO_LOCK_TIMEOUT_KEY]: minutes });
+}
+
+async function touchActivity(now = Date.now()): Promise<void> {
+  lastActivityAt = now;
+  await chrome.storage.local.set({ [LAST_ACTIVITY_AT_KEY]: now });
+}
+
+async function readLastActivityAt(): Promise<number> {
+  if (lastActivityAt > 0) return lastActivityAt;
+  const raw = await chrome.storage.local.get(LAST_ACTIVITY_AT_KEY);
+  const v = raw[LAST_ACTIVITY_AT_KEY];
+  lastActivityAt = typeof v === "number" && Number.isFinite(v) ? v : 0;
+  return lastActivityAt;
+}
+
+async function checkAutoLock(): Promise<void> {
+  if (!sessionKeypair) return;
+  const [minutes, last] = await Promise.all([
+    getAutoLockTimeoutMinutes(),
+    readLastActivityAt(),
+  ]);
+  if (minutes === 0) return;
+  if (last === 0) {
+    await touchActivity();
+    return;
+  }
+  const elapsed = Date.now() - last;
+  if (elapsed >= minutes * 60_000) {
+    clearWalletSession();
+  }
+}
 
 function clearWalletSessionCaches(): void {
   cachedSolBalanceBaseUnits = null;
@@ -126,6 +199,7 @@ function clearWalletSession(): void {
   sessionAccountId = null;
   sessionVaultPassword = null;
   unlockedKeypairs = null;
+  lastActivityAt = 0;
   clearWalletSessionCaches();
 }
 
@@ -260,8 +334,48 @@ async function applyBurnToPortfolioCache(params: {
   cachedPortfolioTokens = tokens.length > 0 ? tokens : null;
 }
 
+// After shield/unshield, Brume indexer can lag; align the affected mint with base RPC (processed).
+
+async function patchPortfolioTokenAmountFromRpcForMint(params: {
+  network: NetworkId;
+  address: string;
+  mint: string;
+  rpcUrlOverride: string | null;
+}): Promise<void> {
+  if (params.network !== "devnet") return;
+  try {
+    const raw = await fetchSplAtaBalanceRawForOwner(
+      {
+        network: params.network,
+        ownerB58: params.address,
+        mintAddress: params.mint,
+        rpcUrlOverride: params.rpcUrlOverride,
+      },
+      "processed",
+    );
+    let tokens: CachedPortfolioToken[] =
+      cachedPortfolioTokens != null
+        ? [...cachedPortfolioTokens]
+        : (await readPortfolioCache(params.network, params.address)) ?? [];
+
+    const idx = tokens.findIndex((t) => t.mint === params.mint);
+    if (idx === -1) return;
+
+    const bi = BigInt(raw);
+    if (bi === 0n) {
+      tokens = tokens.filter((t) => t.mint !== params.mint);
+    } else {
+      tokens[idx] = { ...tokens[idx], amountRaw: raw };
+    }
+    await writePortfolioCache(params.network, params.address, tokens);
+    cachedPortfolioTokens = tokens.length > 0 ? tokens : null;
+  } catch {
+    // keep indexer snapshot
+  }
+}
+
 async function refreshWalletData(opts?: {
-  /** Skip portfolio TTL and refetch from Brume API (user refresh, network/RPC change). */
+  // Ignore portfolio cache TTL; refetch from Brume API (refresh button, network/RPC change).
   forcePortfolio?: boolean;
 }): Promise<void> {
   const forcePortfolio = opts?.forcePortfolio === true;
@@ -479,6 +593,32 @@ async function handleMessage(
           ok: true,
           payload: await buildUiState(),
         });
+        return;
+      }
+
+      case "ACTIVITY_HEARTBEAT": {
+        if (sessionKeypair) {
+          await touchActivity();
+        }
+        sendResponse({ ok: true });
+        return;
+      }
+
+      case "GET_AUTO_LOCK_TIMEOUT": {
+        sendResponse({ ok: true, payload: { minutes: await getAutoLockTimeoutMinutes() } });
+        return;
+      }
+
+      case "SET_AUTO_LOCK_TIMEOUT": {
+        const minutes = raw.payload.minutes;
+        if (!Number.isFinite(minutes) || minutes < 0 || minutes > 24 * 60) {
+          sendResponse({ ok: false, error: walletError(4002, "Invalid timeout") });
+          return;
+        }
+        await setAutoLockTimeoutMinutes(minutes);
+        // If we're unlocked, treat changing the timeout as activity.
+        if (sessionKeypair) await touchActivity();
+        sendResponse({ ok: true, payload: { minutes } });
         return;
       }
 
@@ -756,6 +896,7 @@ async function handleMessage(
         unlockedKeypairs = map;
         sessionKeypair = kp;
         sessionAccountId = targetId;
+        await touchActivity();
         await hydrateWalletCachesFromStorage(
           v.network ?? DEFAULT_NETWORK,
           kp.publicKey.toBase58(),
@@ -870,6 +1011,7 @@ async function handleMessage(
 
       case "LOCK": {
         clearWalletSession();
+        await chrome.storage.local.set({ [LAST_ACTIVITY_AT_KEY]: 0 });
         sendResponse({ ok: true });
         return;
       }
@@ -878,8 +1020,22 @@ async function handleMessage(
         const p = await getVaultOrThrow();
         p.network = raw.payload.network;
         await saveVault(p);
-        await refreshWalletData({ forcePortfolio: true });
+        // Load the cached UI data for the newly-selected network immediately,
+        // so the popup can show the right cached balances/portfolio instantly.
+        if (sessionKeypair) {
+          try {
+            await hydrateWalletCachesFromStorage(
+              p.network ?? DEFAULT_NETWORK,
+              sessionKeypair.publicKey.toBase58(),
+            );
+          } catch {
+            // ignore cache hydration errors; background refresh will follow
+          }
+        }
+
+        // Respond immediately; refresh in background so UI switches instantly.
         sendResponse({ ok: true, payload: { network: p.network } });
+        void refreshWalletData({ forcePortfolio: true });
         return;
       }
 
@@ -1214,6 +1370,28 @@ async function handleMessage(
                   rpcUrlOverride: p.rpcUrlOverride ?? null,
                 });
           await refreshWalletData({ forcePortfolio: true });
+          const addr = sessionKeypair.publicKey.toBase58();
+          await patchPortfolioTokenAmountFromRpcForMint({
+            network: p.network,
+            address: addr,
+            mint,
+            rpcUrlOverride: p.rpcUrlOverride ?? null,
+          });
+          try {
+            const freshShield = await fetchShieldBalanceInfo({
+              network: p.network,
+              rpcUrlOverride: p.rpcUrlOverride ?? null,
+              ownerAddress: addr,
+              mintAddress: mint,
+            });
+            await mergeShieldBalancesIntoCache({
+              network: p.network,
+              address: addr,
+              patch: { [mint]: freshShield.privateBalanceRaw },
+            });
+          } catch {
+            // shield cache already refreshed in refreshWalletData
+          }
           sendResponse({ ok: true, payload: { signature } });
         } catch (e) {
           const m = messageFromUnknown(e);
@@ -1625,7 +1803,7 @@ async function handleMessage(
               await saveVault(p);
             }
           } catch {
-            /* no active account */
+            // No active account; nothing to disconnect for this origin.
           }
         }
         await notifyTab(tabId, {

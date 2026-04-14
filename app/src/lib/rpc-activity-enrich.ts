@@ -28,11 +28,13 @@ export interface ActivityRow {
   displayLabel?: string;
   displayDetail?: string;
   iconSlots?: ActivityIconSlot[];
-  /** Mints referenced in this tx (for activity copy + logo resolution). */
+    // Mints referenced in this tx (for activity copy + logo resolution).
+
   enrichmentMints?: string[];
 }
 
-/** Common routers / aggregators (base58 program id). */
+// Common routers / aggregators (base58 program id).
+
 const DEX_PROGRAM_LABELS: Record<string, string> = {
   JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4: "Jupiter",
   JUP4Fb2cqiRUcaTHdrPC8h2gNsA2ETXiPDD33WcGuJB: "Jupiter",

@@ -40,6 +40,25 @@ export function getState(): Promise<WalletUiState> {
   return sendMessage<WalletUiState>({ type: "GET_STATE", requestId });
 }
 
+export function activityHeartbeat(): Promise<void> {
+  const requestId = crypto.randomUUID();
+  return sendMessage<void>({ type: "ACTIVITY_HEARTBEAT", requestId });
+}
+
+export function getAutoLockTimeout(): Promise<{ minutes: number }> {
+  const requestId = crypto.randomUUID();
+  return sendMessage<{ minutes: number }>({ type: "GET_AUTO_LOCK_TIMEOUT", requestId });
+}
+
+export function setAutoLockTimeout(minutes: number): Promise<{ minutes: number }> {
+  const requestId = crypto.randomUUID();
+  return sendMessage<{ minutes: number }>({
+    type: "SET_AUTO_LOCK_TIMEOUT",
+    requestId,
+    payload: { minutes },
+  });
+}
+
 export function createWallet(mnemonic: string, password?: string) {
   const requestId = crypto.randomUUID();
   return sendMessage<{ publicKey: string }>({
@@ -204,7 +223,8 @@ export function sendSpl(
   });
 }
 
-/** `amount` is a human decimal string, or `all` to burn everything and close the ATA. */
+// `amount` is a human decimal string, or `all` to burn everything and close the ATA.
+
 export function burnSpl(mint: string, amount: string) {
   const requestId = crypto.randomUUID();
   return sendMessage<{ signature: string }>({
@@ -227,7 +247,8 @@ export function getShieldBalances(mint: string) {
   });
 }
 
-/** Parallel private (ephemeral) balance per mint for portfolio rows. */
+// Parallel private (ephemeral) balance per mint for portfolio rows.
+
 export function getShieldBalancesBatch(mints: string[]) {
   const requestId = crypto.randomUUID();
   return sendMessage<Record<string, string>>({

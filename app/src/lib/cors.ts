@@ -6,9 +6,9 @@ const ALLOWED_ORIGIN_PATTERNS = [
   /^http:\/\/127\.0\.0\.1(:\d+)?$/,
 ];
 
-/**
- * Echo origin only for Brume extension / known hosts — never use wildcard.
- */
+// 
+// Echo origin only for Brume extension / known hosts — never use wildcard.
+
 export function resolveAllowedOrigin(request: Request): string | null {
   const origin = request.headers.get("origin");
   if (!origin) return null;
@@ -26,7 +26,7 @@ export function isCorsOriginAllowed(request: Request): boolean {
 export function corsHeaders(req: Request): HeadersInit {
   const allow = resolveAllowedOrigin(req);
   const base: Record<string, string> = {
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age": "86400",
   };

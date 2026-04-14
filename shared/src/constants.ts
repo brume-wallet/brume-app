@@ -1,4 +1,4 @@
-/** Public GitHub repository for the monorepo (wallet + API + shared). */
+// Monorepo (wallet + API + shared) on GitHub.
 export const BRUME_GITHUB_REPO_URL =
   "https://github.com/brume-wallet/brume-app" as const;
 
@@ -33,7 +33,7 @@ export type NetworkId = keyof typeof NETWORKS;
 
 export const DEFAULT_NETWORK: NetworkId = "devnet";
 
-export const DEFAULT_BRUME_API_ORIGIN = "http://localhost:3001";
+export const DEFAULT_BRUME_API_ORIGIN = "https://brume.cash";
 
 export const SOL_WRAPPED_MINT =
   "So11111111111111111111111111111111111111112" as const;
@@ -62,6 +62,31 @@ export function magicblockPerEphemeralSubmitHttp(network: NetworkId): string {
   return network === "mainnet-beta"
     ? MAGICBLOCK_PER_EPHEMERAL_HTTP_MAINNET
     : MAGICBLOCK_PER_EPHEMERAL_HTTP_DEVNET;
+}
+
+// 
+// Base URL for PER Bearer auth (`GET /auth/challenge`, `POST /auth/login`).
+// Devnet: `devnet-as` is JSON-RPC–only and rejects REST auth; use `devnet-tee` for auth
+// and keep `devnet-as` for `sendRawTransaction` (see `magicblockPerEphemeralSubmitHttp`).
+
+export function magicblockPerEphemeralAuthHttp(network: NetworkId): string {
+  if (network === "devnet") {
+    return MAGICBLOCK_DEVNET_TEE_ER_HTTP.replace(/\/+$/, "");
+  }
+  return magicblockPerEphemeralSubmitHttp(network).replace(/\/+$/, "");
+}
+
+// 
+// When true, Brume does not call `verifyTeeRpcIntegrity` before `getAuthToken`.
+// Devnet: MagicBlock `/quote` often returns a structured `error` object; the SDK does
+// `throw new Error(responseBody.error)` which becomes `Error: [object Object]`. TEE
+// quote verification also depends on external PCCS. Ephemeral submit still uses Bearer
+// auth from `getAuthToken`.
+
+export function magicblockPerEphemeralSkipTeeIntegrityVerify(
+  network: NetworkId,
+): boolean {
+  return network === "devnet";
 }
 
 export function isShieldFeatureEnabled(network: NetworkId): boolean {

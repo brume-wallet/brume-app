@@ -1,23 +1,23 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import {
-  Clock01Icon,
-  MoneyReceive01Icon,
-  Shield01Icon,
-  SentIcon,
-} from "@hugeicons/core-free-icons";
-import { buttonVariants } from "@/components/ui/button";
+import { ArrowDownLeft, ArrowUpRight, Clock, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isShieldFeatureEnabled } from "@/shared/constants";
-import { BrumeIcon } from "./BrumeIcon";
 import { useWalletStore } from "../store";
 
-const tileClass = cn(
-  buttonVariants({ variant: "secondary", size: "default" }),
-  "h-auto min-h-[5.25rem] w-full flex-col gap-2 rounded-2xl py-4 font-normal shadow-none ring-1 ring-border/60",
-  "hover:bg-accent/40 active:scale-[0.97]",
-  "disabled:pointer-events-none disabled:opacity-40",
-);
+function ActionCircle(props: { children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        "flex size-12 shrink-0 items-center justify-center rounded-full transition-[transform,background-color]",
+        "bg-[rgba(249,54,60,0.14)] hover:bg-[rgba(249,54,60,0.22)]",
+        "active:scale-[0.93]",
+      )}
+    >
+      <span className="text-foreground [&_svg]:text-foreground">{props.children}</span>
+    </span>
+  );
+}
 
 function Tile(props: {
   to?: string;
@@ -28,27 +28,32 @@ function Tile(props: {
 }) {
   const inner = (
     <>
-      <span className="text-primary">{props.icon}</span>
-      <span className="text-xs font-medium text-foreground">{props.label}</span>
+      <ActionCircle>{props.icon}</ActionCircle>
+      <span className="text-[13px] leading-4 text-foreground">
+        {props.label}
+      </span>
     </>
   );
 
+  const base =
+    "flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 overflow-hidden bg-transparent p-0 text-center";
+
   if (props.disabled) {
     return (
-      <button type="button" disabled className={tileClass}>
+      <button type="button" disabled className={cn(base, "opacity-40")}>
         {inner}
       </button>
     );
   }
   if (props.to) {
     return (
-      <Link to={props.to} className={tileClass}>
+      <Link to={props.to} className={cn(base, "cursor-pointer")}>
         {inner}
       </Link>
     );
   }
   return (
-    <button type="button" className={tileClass} onClick={props.onClick}>
+    <button type="button" className={cn(base, "cursor-pointer")} onClick={props.onClick}>
       {inner}
     </button>
   );
@@ -58,30 +63,26 @@ export function ActionBar() {
   const { state } = useWalletStore();
   const shieldEnabled = isShieldFeatureEnabled(state?.network ?? "devnet");
   return (
-    <div className="grid grid-cols-4 gap-2 px-1">
+    <div className="grid grid-cols-4 gap-2 px-1 pt-1">
       <Tile
         to="/send"
-        icon={<BrumeIcon icon={SentIcon} className="h-6 w-6" size={24} />}
+        icon={<ArrowUpRight className="h-6 w-6" strokeWidth={2} />}
         label="Send"
+      />
+      <Tile
+        to="/receive"
+        icon={<ArrowDownLeft className="h-6 w-6" strokeWidth={2} />}
+        label="Receive"
       />
       <Tile
         to={shieldEnabled ? "/shield" : undefined}
         disabled={!shieldEnabled}
-        icon={
-          <BrumeIcon icon={Shield01Icon} className="h-6 w-6" size={24} />
-        }
+        icon={<Shield className="h-6 w-6" strokeWidth={2} />}
         label="Shield"
       />
       <Tile
-        to="/receive"
-        icon={
-          <BrumeIcon icon={MoneyReceive01Icon} className="h-6 w-6" size={24} />
-        }
-        label="Receive"
-      />
-      <Tile
         to="/activity"
-        icon={<BrumeIcon icon={Clock01Icon} className="h-6 w-6" size={24} />}
+        icon={<Clock className="h-6 w-6" strokeWidth={2} />}
         label="Activity"
       />
     </div>
