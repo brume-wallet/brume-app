@@ -1,12 +1,13 @@
 import { useState } from "react";
 import QRCode from "react-qr-code";
-import { Check, Copy, X } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { useWalletStore } from "../store";
+import { CopyIcon, CrossIcon } from "@/components/Icons";
 
 export function Receive() {
   const { state } = useWalletStore();
@@ -34,7 +35,7 @@ export function Receive() {
           )}
           aria-label="Close"
         >
-          <X className="h-5 w-5" strokeWidth={2} />
+          <CrossIcon className="size-5" />
         </Link>
       </header>
 
@@ -76,7 +77,7 @@ export function Receive() {
             {copied ? (
               <Check className="h-4 w-4 text-[#34C759]" strokeWidth={2} />
             ) : (
-              <Copy className="h-4 w-4" strokeWidth={2} />
+              <CopyIcon className="size-4" />
             )}
             Copy Address
           </span>

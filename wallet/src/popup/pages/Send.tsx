@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { getNativeSolDisplay } from "@/lib/token-metadata";
 import { useJupiterPortfolioPrices } from "../context/JupiterPortfolioPrices";
-import { Search01Icon } from "@hugeicons/core-free-icons";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "../components/PageHeader";
-import { BrumeIcon } from "../components/BrumeIcon";
 import { TokenRow } from "../components/TokenRow";
 import {
   fiatForPrivateLeg,
@@ -17,6 +14,7 @@ import { sortPortfolioTokensByBalanceDesc } from "../lib/sort-portfolio-by-balan
 import * as msg from "../messaging";
 import { SOL_WRAPPED_MINT, isShieldFeatureEnabled } from "@/shared/constants";
 import { useWalletStore } from "../store";
+import { SearchIcon } from "@/components/Icons";
 
 function solSearchMatches(q: string, solSymbol: string, solName: string): boolean {
   const t = q.trim().toLowerCase();
@@ -137,11 +135,7 @@ export function Send() {
           Choose an asset to send from your wallet.
         </p>
         <div className="relative">
-          <BrumeIcon
-            icon={Search01Icon}
-            size={18}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search by name, symbol, or mint…"
@@ -250,14 +244,6 @@ export function Send() {
             No tokens match “{q.trim()}”.
           </p>
         ) : null}
-        <div className="pt-2">
-          <Link
-            to="/"
-            className="text-sm text-primary underline-offset-4 hover:underline"
-          >
-            Back to home
-          </Link>
-        </div>
       </div>
     </div>
   );

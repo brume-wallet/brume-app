@@ -11,6 +11,8 @@ import { applyUiSurfaceClass, readUiSurface } from "./lib/ui-shell";
 
 void readUiSurface().then(applyUiSurfaceClass);
 
+document.documentElement.classList.remove("dark");
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <HashRouter>

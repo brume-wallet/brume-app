@@ -1,32 +1,32 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Refresh01Icon } from "@hugeicons/core-free-icons";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { EyeIcon, EyeSlashIcon } from "@/components/Icons";
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
+    Alert,
+    AlertDescription,
+    AlertTitle,
 } from "@/components/ui/alert";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { getNativeSolDisplay } from "@/lib/token-metadata";
+import { cn } from "@/lib/utils";
+import { SOL_WRAPPED_MINT, isShieldFeatureEnabled } from "@/shared/constants";
+import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { ActionBar } from "../components/ActionBar";
 import { BalanceCard } from "../components/BalanceCard";
 import { BrumeIcon } from "../components/BrumeIcon";
 import { TokenRow } from "../components/TokenRow";
-import { getNativeSolDisplay } from "@/lib/token-metadata";
-import { SOL_WRAPPED_MINT, isShieldFeatureEnabled } from "@/shared/constants";
 import { useJupiterPortfolioPrices } from "../context/JupiterPortfolioPrices";
 import { nativeSolTokenPath } from "../lib/native-sol-route";
 import {
-  fiatForPrivateLeg,
-  privateRawPositive,
-  rawToHuman,
-  walletHumanFromRaw,
+    fiatForPrivateLeg,
+    privateRawPositive,
+    rawToHuman,
+    walletHumanFromRaw,
 } from "../lib/private-balance-helpers";
-import { sortPortfolioTokensByBalanceDesc } from "../lib/sort-portfolio-by-balance";
 import { scheduleWalletStateRefresh } from "../lib/schedule-wallet-state-refresh";
+import { sortPortfolioTokensByBalanceDesc } from "../lib/sort-portfolio-by-balance";
 import * as msg from "../messaging";
 import { useWalletStore } from "../store";
-import { cn } from "@/lib/utils";
 
 export function Dashboard() {
   const { state, refresh } = useWalletStore();
@@ -175,28 +175,28 @@ export function Dashboard() {
             type="button"
             variant="ghost"
             size="icon-xs"
-            className="size-9 rounded-full bg-secondary text-[color:var(--extension-icon)] hover:bg-black/[0.08] dark:hover:bg-white/10"
+            className="size-8 rounded-full bg-secondary text-[color:var(--extension-icon)] hover:bg-black/[0.08] dark:hover:bg-white/10"
             aria-label={balanceHidden ? "Show balance" : "Hide balance"}
             onClick={() => setBalanceHidden((h) => !h)}
           >
             {balanceHidden ? (
-              <EyeOff size={20} strokeWidth={1.5} className="opacity-60" />
+              <EyeSlashIcon className="size-4 opacity-60" />
             ) : (
-              <Eye size={20} strokeWidth={1.5} className="opacity-60" />
+              <EyeIcon className="size-4 opacity-60" />
             )}
           </Button>
           <Button
             type="button"
             variant="ghost"
             size="icon-xs"
-            className="size-9 rounded-full bg-secondary text-[color:var(--extension-icon)] hover:bg-black/[0.08] dark:hover:bg-white/10"
+            className="size-8 rounded-full bg-secondary text-[color:var(--extension-icon)] hover:bg-black/[0.08] dark:hover:bg-white/10"
             aria-label="Refresh balance"
             disabled={balanceRefreshing}
             onClick={() => void onRefreshBalance()}
           >
             <BrumeIcon
               icon={Refresh01Icon}
-              size={18}
+              size={16}
               className={balanceRefreshing ? "brume-sidebar-spin" : undefined}
             />
           </Button>
@@ -229,6 +229,7 @@ export function Dashboard() {
         logoUri={solList.logoURI}
         verified={solList.fromRegistry}
         fiatUsdApprox={solFiatApprox}
+        hideBalance={balanceHidden}
       />
 
       {privateRawPositive(privateByMint[SOL_WRAPPED_MINT]) ? (
@@ -252,6 +253,7 @@ export function Dashboard() {
             rawToHuman(privateByMint[SOL_WRAPPED_MINT] ?? "0", solList.decimals),
           )}
           forceShieldBadge
+          hideBalance={balanceHidden}
         />
       ) : null}
 
@@ -271,6 +273,7 @@ export function Dashboard() {
                 logoUri={t.logoUri}
                 verified={false}
                 fiatUsdApprox={splFiatApprox(t.mint)}
+                hideBalance={balanceHidden}
               />,
             ];
             if (privateRawPositive(privRaw)) {
@@ -297,6 +300,7 @@ export function Dashboard() {
                     pHum,
                   )}
                   forceShieldBadge
+                  hideBalance={balanceHidden}
                 />,
               );
             }

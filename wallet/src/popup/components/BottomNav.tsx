@@ -1,18 +1,22 @@
 import { NavLink } from "react-router-dom";
-import {
-  Clock01Icon,
-  Home01Icon,
-  Shield01Icon,
-  SentIcon,
-  Settings01Icon,
-} from "@hugeicons/core-free-icons";
-import { BrumeIcon } from "./BrumeIcon";
 import { cn } from "@/lib/utils";
 import { isShieldFeatureEnabled } from "@/shared/constants";
 import { useWalletStore } from "../store";
+import {
+  ClockOutlineIcon,
+  ClockSolidIcon,
+  HomeOutlineIcon,
+  HomeSolidIcon,
+  NavSendIcon,
+  NavSendSolidIcon,
+  SettingIcon,
+  SettingSolidIcon,
+  ShieldSolidIcon,
+  ShieldIcon,
+} from "@/components/Icons";
 
 const linkBase =
-  "relative flex flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden py-2 text-[10px] font-medium transition-colors duration-200";
+  "relative flex flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden py-2 text-[10px] transition-colors duration-200";
 
 export function BottomNav() {
   const { state } = useWalletStore();
@@ -24,60 +28,63 @@ export function BottomNav() {
     >
       <NavLink to="/" end className={linkBase}>
         {({ isActive }) => (
-          <>
+          <span className="flex flex-col items-center gap-0.5">
             {isActive ? (
-              <span className="absolute inset-x-1 top-1 bottom-1 rounded-2xl bg-primary/15" />
-            ) : null}
-            <span className="relative z-[1] flex flex-col items-center gap-0.5">
-              <BrumeIcon
-                icon={Home01Icon}
-                className={cn(isActive ? "text-primary" : "text-muted-foreground")}
-                size={24}
-              />
-              <span className={cn(isActive ? "text-primary" : "text-muted-foreground")}>
-                Home
-              </span>
+              <HomeSolidIcon className="text-primary" />
+            ) : (
+              <HomeOutlineIcon className="text-muted-foreground" />
+            )}
+            <span
+              className={cn(
+                isActive
+                  ? "font-semibold text-primary"
+                  : "font-medium text-muted-foreground",
+              )}
+            >
+              Home
             </span>
-          </>
+          </span>
         )}
       </NavLink>
       <NavLink to="/send" className={linkBase}>
         {({ isActive }) => (
-          <>
+          <span className="flex flex-col items-center gap-0.5">
             {isActive ? (
-              <span className="absolute inset-x-1 top-1 bottom-1 rounded-2xl bg-primary/15" />
-            ) : null}
-            <span className="relative z-[1] flex flex-col items-center gap-0.5">
-              <BrumeIcon
-                icon={SentIcon}
-                className={cn(isActive ? "text-primary" : "text-muted-foreground")}
-                size={24}
-              />
-              <span className={cn(isActive ? "text-primary" : "text-muted-foreground")}>
-                Send
-              </span>
+              <NavSendSolidIcon className="text-primary" />
+            ) : (
+              <NavSendIcon className="text-muted-foreground" />
+            )}
+            <span
+              className={cn(
+                isActive
+                  ? "font-semibold text-primary"
+                  : "font-medium text-muted-foreground",
+              )}
+            >
+              Send
             </span>
-          </>
+          </span>
         )}
       </NavLink>
       {shieldEnabled ? (
         <NavLink to="/shield" className={linkBase}>
           {({ isActive }) => (
-            <>
+            <span className="flex flex-col items-center gap-0.5">
               {isActive ? (
-                <span className="absolute inset-x-1 top-1 bottom-1 rounded-2xl bg-primary/15" />
-              ) : null}
-              <span className="relative z-[1] flex flex-col items-center gap-0.5">
-                <BrumeIcon
-                  icon={Shield01Icon}
-                  className={cn(isActive ? "text-primary" : "text-muted-foreground")}
-                  size={24}
-                />
-                <span className={cn(isActive ? "text-primary" : "text-muted-foreground")}>
-                  Shield
-                </span>
+                <ShieldSolidIcon className="text-primary" />
+              ) : (
+                <ShieldIcon className="text-muted-foreground" />
+              )}
+              <span
+                className={cn(
+                  isActive
+                    ? "font-semibold text-primary"
+                    : "font-medium text-muted-foreground",
+                )}
+              >
+                Shield
               </span>
-            </>
+            </span>
           )}
         </NavLink>
       ) : (
@@ -86,48 +93,50 @@ export function BottomNav() {
           title="Shield is only available on Devnet"
           aria-label="Shield — Devnet only"
         >
-          <span className="relative z-[1] flex flex-col items-center gap-0.5">
-            <BrumeIcon icon={Shield01Icon} className="text-muted-foreground" size={24} />
-            <span className="text-muted-foreground">Shield</span>
+          <span className="flex flex-col items-center gap-0.5">
+            <ShieldIcon className="text-muted-foreground" />
+            <span className="font-medium text-muted-foreground">Shield</span>
           </span>
         </span>
       )}
       <NavLink to="/activity" className={linkBase}>
         {({ isActive }) => (
-          <>
+          <span className="flex flex-col items-center gap-0.5">
             {isActive ? (
-              <span className="absolute inset-x-1 top-1 bottom-1 rounded-2xl bg-primary/15" />
-            ) : null}
-            <span className="relative z-[1] flex flex-col items-center gap-0.5">
-              <BrumeIcon
-                icon={Clock01Icon}
-                className={cn(isActive ? "text-primary" : "text-muted-foreground")}
-                size={24}
-              />
-              <span className={cn(isActive ? "text-primary" : "text-muted-foreground")}>
-                Activity
-              </span>
+              <ClockSolidIcon className="text-primary" />
+            ) : (
+              <ClockOutlineIcon className="text-muted-foreground" />
+            )}
+            <span
+              className={cn(
+                isActive
+                  ? "font-semibold text-primary"
+                  : "font-medium text-muted-foreground",
+              )}
+            >
+              Activity
             </span>
-          </>
+          </span>
         )}
       </NavLink>
       <NavLink to="/settings" className={linkBase}>
         {({ isActive }) => (
-          <>
+          <span className="flex flex-col items-center gap-0.5">
             {isActive ? (
-              <span className="absolute inset-x-1 top-1 bottom-1 rounded-2xl bg-primary/15" />
-            ) : null}
-            <span className="relative z-[1] flex flex-col items-center gap-0.5">
-              <BrumeIcon
-                icon={Settings01Icon}
-                className={cn(isActive ? "text-primary" : "text-muted-foreground")}
-                size={24}
-              />
-              <span className={cn(isActive ? "text-primary" : "text-muted-foreground")}>
-                Settings
-              </span>
+              <SettingSolidIcon className="text-primary" />
+            ) : (
+              <SettingIcon className="text-muted-foreground" />
+            )}
+            <span
+              className={cn(
+                isActive
+                  ? "font-semibold text-primary"
+                  : "font-medium text-muted-foreground",
+              )}
+            >
+              Settings
             </span>
-          </>
+          </span>
         )}
       </NavLink>
     </nav>

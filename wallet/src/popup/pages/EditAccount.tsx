@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,11 +8,11 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { BrumeIcon } from "../components/BrumeIcon";
 import { truncateMiddle } from "../lib/format";
 import * as msg from "../messaging";
 import { useWalletStore } from "../store";
 import { cn } from "@/lib/utils";
+import { ArrowLeftIcon } from "@/components/Icons";
 
 export function EditAccount() {
   const { accountId: rawId } = useParams<{ accountId: string }>();
@@ -104,7 +103,7 @@ export function EditAccount() {
           )}
           aria-label="Back"
         >
-          <BrumeIcon icon={ArrowLeft02Icon} size={22} />
+          <ArrowLeftIcon className="size-[22px]" />
         </Link>
         <h1 className="flex-1 text-center text-lg font-semibold text-foreground pr-8">
           Edit account

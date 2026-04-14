@@ -1,10 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import {
-  Blockchain05Icon,
-  Copy01Icon,
-  SentIcon,
-} from "@hugeicons/core-free-icons";
+import { Blockchain05Icon } from "@hugeicons/core-free-icons";
 import { Check } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -33,6 +29,7 @@ import { useCopyToClipboard } from "../lib/useCopyToClipboard";
 import * as msg from "../messaging";
 import { useWalletStore } from "../store";
 import { cn } from "@/lib/utils";
+import { CopyIcon, NavSendSolidIcon } from "@/components/Icons";
 
 function ellipsifyMint(mint: string, head = 4, tail = 4): string {
   const t = mint.replace(/\s/g, "");
@@ -263,7 +260,7 @@ export function TokenDetail() {
                 {copied ? (
                   <Check className="h-4 w-4 text-[#34C759]" strokeWidth={2} />
                 ) : (
-                  <BrumeIcon icon={Copy01Icon} size={16} />
+                  <CopyIcon className="size-4" />
                 )}
               </Button>
             </div>
@@ -304,11 +301,7 @@ export function TokenDetail() {
                 "h-12 w-full gap-2 rounded-2xl text-[15px] font-semibold no-underline",
               )}
             >
-              <BrumeIcon
-                icon={SentIcon}
-                size={20}
-                className="text-primary-foreground"
-              />
+              <NavSendSolidIcon className="size-5 text-primary-foreground" />
               Send
             </Link>
           ) : (
@@ -320,11 +313,7 @@ export function TokenDetail() {
                 "h-12 w-full gap-2 rounded-2xl text-[15px] font-semibold no-underline",
               )}
             >
-              <BrumeIcon
-                icon={SentIcon}
-                size={20}
-                className="text-primary-foreground"
-              />
+              <NavSendSolidIcon className="size-5 text-primary-foreground" />
               Send
             </Link>
           )}

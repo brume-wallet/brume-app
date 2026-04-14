@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Copy01Icon } from "@hugeicons/core-free-icons";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BrumeIcon } from "./BrumeIcon";
 import { NetworkBadge } from "./NetworkBadge";
 import { truncateMiddle } from "../lib/format";
 import { useWalletStore } from "../store";
+import { CopyIcon } from "@/components/Icons";
 
 // Sticky top chrome: account + network (matches bottom nav treatment).
 
@@ -73,7 +72,7 @@ export function MainShellHeader() {
               {copied ? (
                 <Check className="h-[18px] w-[18px] text-[#34C759]" strokeWidth={2} />
               ) : (
-                <BrumeIcon icon={Copy01Icon} size={18} />
+                <CopyIcon className="size-[12px]" />
               )}
             </Button>
           </div>

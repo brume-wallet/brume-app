@@ -5,14 +5,9 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
-  Copy,
-  Eye,
-  EyeOff,
   Globe,
   Lock,
-  PanelRight,
   Server,
-  Square,
   Timer,
   Users,
 } from "lucide-react";
@@ -28,6 +23,7 @@ import { ensureRpcHostPermission } from "../lib/rpc-permissions";
 import * as msg from "../messaging";
 import { useWalletStore } from "../store";
 import { PasswordInput } from "../components/PasswordInput";
+import { CopyIcon, EyeIcon, EyeSlashIcon } from "@/components/Icons";
 
 const font = "font-sans";
 const secondary = "text-muted-foreground";
@@ -409,7 +405,7 @@ export function Settings() {
                   </>
                 ) : (
                   <>
-                    <Copy className="h-3.5 w-3.5" strokeWidth={2} />
+                    <CopyIcon className="size-3.5" />
                   </>
                 )}
                 Copy
@@ -417,7 +413,7 @@ export function Settings() {
             </SettingsRow>
           ) : null}
           <SettingsRow
-            icon={<Eye className="h-[18px] w-[18px]" strokeWidth={2} />}
+            icon={<EyeIcon className="size-[18px]" />}
             title="Private key"
             onClick={() => {
               setShowPrivateKey(!showPrivateKey);
@@ -483,9 +479,9 @@ export function Settings() {
                       aria-label={revealKey ? "Hide" : "Reveal"}
                     >
                       {revealKey ? (
-                        <EyeOff className="h-3.5 w-3.5" strokeWidth={2} />
+                        <EyeSlashIcon className="size-3.5" />
                       ) : (
-                        <Eye className="h-3.5 w-3.5" strokeWidth={2} />
+                        <EyeIcon className="size-3.5" />
                       )}
                     </button>
                   </div>
@@ -506,7 +502,11 @@ export function Settings() {
                     "flex flex-1 items-center justify-center gap-1.5 rounded-lg border-none bg-primary py-2 text-[13px] font-medium leading-4 text-primary-foreground transition-colors duration-150 disabled:opacity-40",
                   )}
                 >
-                  {copiedKey ? <Check className="h-3.5 w-3.5" strokeWidth={2} /> : <Copy className="h-3.5 w-3.5" strokeWidth={2} />}
+                  {copiedKey ? (
+                    <Check className="h-3.5 w-3.5" strokeWidth={2} />
+                  ) : (
+                    <CopyIcon className="size-3.5" />
+                  )}
                   {copiedKey ? "Copied!" : "Copy"}
                 </button>
                 <button
@@ -662,20 +662,6 @@ export function Settings() {
         </Section>
 
         <Section label="Extension">
-          <div className="px-4">
-            <div className="flex items-center justify-between border-b border-border py-2.5">
-              <div className="flex items-center gap-2.5">
-                {uiSurface === "sidepanel" ? (
-                  <PanelRight className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={2} />
-                ) : (
-                  <Square className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={2} />
-                )}
-                <span className={cn(font, "text-[14px] font-normal leading-5 text-foreground")}>
-                  View mode
-                </span>
-              </div>
-            </div>
-          </div>
           <SegmentedControl
             options={[
               { value: "sidepanel" as const, label: "Side panel" },

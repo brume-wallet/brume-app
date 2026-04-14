@@ -16,7 +16,6 @@ import {
   usdForHolding,
 } from "@brume/shared";
 import type { PortfolioTokenRow } from "@brume/shared";
-import { DEFAULT_NETWORK } from "@/shared/constants";
 import { useWalletStore } from "../store";
 
 const REFRESH_MS = 45_000;
@@ -39,17 +38,8 @@ export type JupiterPortfolioPricing = {
 const JupiterPortfolioPricesContext =
   createContext<JupiterPortfolioPricing | null>(null);
 
-// 
-// Devnet: no Jupiter / USD “portfolio value” (tokens + lamports still load via Brume API + RPC).
-
-const DEVNET_PORTFOLIO_PRICING: JupiterPortfolioPricing = {
-  totalUsdApprox: null,
-  totalPortfolioSolApprox: null,
-  solFiatApprox: null,
-  splFiatApprox: () => null,
-  refetch: () => Promise.resolve(),
-  pricesReady: false,
-};
+// Devnet: we still fetch Jupiter USD prices for any known mints so
+// SOL + mainnet-minted tokens show value estimates even on devnet.
 
 function usePortfolioPricingEngine(input: {
   balanceSolBaseUnits: string | null | undefined;
@@ -188,15 +178,6 @@ export function JupiterPortfolioPricesProvider({
 }: {
   children: ReactNode;
 }) {
-  const { state } = useWalletStore();
-  const network = state?.network ?? DEFAULT_NETWORK;
-  if (network === "devnet") {
-    return (
-      <JupiterPortfolioPricesContext.Provider value={DEVNET_PORTFOLIO_PRICING}>
-        {children}
-      </JupiterPortfolioPricesContext.Provider>
-    );
-  }
   return (
     <LiveJupiterPortfolioPricesProvider>
       {children}

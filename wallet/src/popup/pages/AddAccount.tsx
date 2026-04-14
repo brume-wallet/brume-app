@@ -2,13 +2,13 @@ import { Link } from "react-router-dom";
 import {
   AccountRecoveryIcon,
   ArrowDown01Icon,
-  ArrowLeft02Icon,
   DocumentCodeIcon,
 } from "@hugeicons/core-free-icons";
 import { buttonVariants } from "@/components/ui/button";
 import { BrumeIcon } from "../components/BrumeIcon";
 import { useWalletStore } from "../store";
 import { cn } from "@/lib/utils";
+import { ArrowLeftIcon } from "@/components/Icons";
 
 function OptionRow(props: {
   icon: typeof AccountRecoveryIcon;
@@ -66,7 +66,7 @@ export function AddAccount() {
           )}
           aria-label="Back"
         >
-          <BrumeIcon icon={ArrowLeft02Icon} size={22} />
+          <ArrowLeftIcon className="size-[22px]" />
         </Link>
         <h1 className="flex-1 pr-8 text-center text-lg font-semibold text-foreground">
           Add account

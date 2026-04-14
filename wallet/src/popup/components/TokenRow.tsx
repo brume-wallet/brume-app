@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { formatTokenListAmount } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { PrivateLegAvatarBadge } from "./PrivateLegAvatarBadge";
 import { VerifiedBadge } from "./VerifiedBadge";
 
@@ -42,54 +43,33 @@ function TokenAvatar(props: {
   );
 }
 
-// Passed through React Router for back navigation on nested flows.
-
 export type TokenRowNavState = {
   sendBackTo?: string;
   tokenDetailBackTo?: string;
-    // Deep-link into Shield (e.g. from Send → Private balance).
-
   shieldTokenMint?: string;
   shieldInitialMode?: "shield" | "unshield";
-    // Open SPL send spending shielded (ephemeral) balance.
-
   fromPrivateBalance?: boolean;
 };
 
 export function TokenRow(props: {
-    // When set, the row navigates here (e.g. send flow).
-
   to?: string;
-    // Optional `location.state` for the navigation (e.g. `{ sendBackTo: "/" }`).
-
   navState?: TokenRowNavState;
   symbol: string;
   name: string;
-    // Integer string of smallest units (e.g. 10⁻⁹ SOL per unit for SOL).
-
   amountRaw: string | null;
   decimals?: number;
   simpleMode: boolean;
   logoUri?: string | null;
-    // When true, show registry-style check (token is in the bundled Solana token list).
-
   verified?: boolean;
-    // 
-  // When set, show a secondary USD line (Jupiter spot where available).
-  // Omit or null hides USD (e.g. token not listed on Jupiter).
-
   fiatUsdApprox?: number | null;
-    // 
-  // Ephemeral (shielded) balance from Payments API, smallest units.
-  // When &gt; 0, shows the default shield badge (unless `forceShieldBadge` is false).
-
   privateBalanceRaw?: string | null;
-    // 
-  // When true, always show the shield badge (e.g. private-balance-only row on Send).
-  // When false, never show it from this row even if `privateBalanceRaw` is set.
-
   forceShieldBadge?: boolean;
+  hideBalance?: boolean;
 }) {
+  const pixelFilterUid = useId().replace(/:/g, "");
+  const pixelLgId = `brume-pixel-row-${pixelFilterUid}-lg`;
+  const pixelSmId = `brume-pixel-row-${pixelFilterUid}-sm`;
+
   const decimals = props.decimals ?? 9;
   const raw =
     props.amountRaw != null && props.amountRaw !== ""
@@ -98,6 +78,7 @@ export function TokenRow(props: {
   const divisor = 10n ** BigInt(decimals);
   const display = Number(raw) / Number(divisor);
   const verified = props.verified ?? false;
+  const hidden = props.hideBalance === true;
 
   let privateHuman: number | null = null;
   if (props.privateBalanceRaw != null && props.privateBalanceRaw !== "") {
@@ -118,6 +99,31 @@ export function TokenRow(props: {
 
   const inner = (
     <>
+      {hidden ? (
+        <svg
+          aria-hidden
+          className="pointer-events-none absolute h-0 w-0 overflow-hidden"
+          width={0}
+          height={0}
+        >
+          <defs>
+            <filter id={pixelLgId} x="0" y="0" width="100%" height="100%">
+              <feFlood x="4" y="4" height="2" width="2" />
+              <feComposite width="10" height="10" />
+              <feTile result="a" />
+              <feComposite in="SourceGraphic" in2="a" operator="in" />
+              <feMorphology operator="dilate" radius="5" />
+            </filter>
+            <filter id={pixelSmId} x="0" y="0" width="100%" height="100%">
+              <feFlood x="3" y="3" height="2" width="2" />
+              <feComposite width="8" height="8" />
+              <feTile result="a" />
+              <feComposite in="SourceGraphic" in2="a" operator="in" />
+              <feMorphology operator="dilate" radius="4" />
+            </filter>
+          </defs>
+        </svg>
+      ) : null}
       <div className="relative shrink-0 overflow-visible">
         <TokenAvatar symbol={props.symbol} logoUri={props.logoUri} />
         {showPrivateBadge ? <PrivateLegAvatarBadge /> : null}
@@ -129,14 +135,33 @@ export function TokenRow(props: {
           </span>
           {verified ? <VerifiedBadge /> : null}
         </div>
-        <p className="text-[13px] text-muted-foreground">
-          {formatTokenListAmount(display)}{" "}
-          {props.symbol}
+        <p
+          className={cn(
+            "text-[13px] text-muted-foreground",
+            hidden && "text-[#c8c8cc]",
+          )}
+          style={
+            hidden
+              ? { filter: `url(#${pixelSmId})`, userSelect: "none" }
+              : undefined
+          }
+        >
+          {formatTokenListAmount(display)} {props.symbol}
         </p>
       </div>
       <div className="shrink-0 text-right">
         {props.fiatUsdApprox != null ? (
-          <p className="text-[15px] font-medium text-foreground">
+          <p
+            className={cn(
+              "text-[15px] font-medium text-foreground",
+              hidden && "text-[#bbbbc0]",
+            )}
+            style={
+              hidden
+                ? { filter: `url(#${pixelLgId})`, userSelect: "none" }
+                : undefined
+            }
+          >
             ${props.fiatUsdApprox.toFixed(2)}
           </p>
         ) : (
@@ -161,7 +186,7 @@ export function TokenRow(props: {
         to={props.to}
         state={props.navState}
         title={privateTitle}
-        className={`${className} block cursor-pointer no-underline outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+        className={`${className} relative block cursor-pointer no-underline outline-none focus-visible:ring-2 focus-visible:ring-ring`}
       >
         {inner}
       </Link>
@@ -169,7 +194,7 @@ export function TokenRow(props: {
   }
 
   return (
-    <div className={className} title={privateTitle}>
+    <div className={`${className} relative`} title={privateTitle}>
       {inner}
     </div>
   );

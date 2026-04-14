@@ -1,14 +1,13 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion } from "motion/react";
-import { ArrowLeft02Icon, Copy01Icon } from "@hugeicons/core-free-icons";
 import { Check } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { BrumeIcon } from "../components/BrumeIcon";
 import * as msg from "../messaging";
 import { useWalletStore } from "../store";
 import { cn } from "@/lib/utils";
 import { useCopyToClipboard } from "../lib/useCopyToClipboard";
+import { ArrowLeftIcon, CopyIcon } from "@/components/Icons";
 
 // In-page step change only (shell already slides R→L via MainShell `accountSubpage`).
 
@@ -75,18 +74,18 @@ export function PrivateKey() {
           )}
           aria-label="Back"
         >
-          <BrumeIcon icon={ArrowLeft02Icon} size={22} />
+          <ArrowLeftIcon className="size-[22px]" />
         </Link>
         <h1 className="flex-1 pr-8 text-center text-lg font-semibold text-foreground">
           Your Private Key
         </h1>
       </div>
 
-      <div className="rounded-2xl bg-[#2c1414] px-4 py-3.5 text-center ring-1 ring-[#4a2525]">
-        <p className="text-[15px] font-bold leading-snug text-[#ff5c33]">
+      <div className="rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3.5 text-center">
+        <p className="text-[15px] font-bold leading-snug text-rose-700">
           Do <u>not</u> share your Private Key!
         </p>
-        <p className="mt-2 text-xs font-normal leading-relaxed text-[#ff5c33]/90">
+        <p className="mt-2 text-xs font-normal leading-relaxed text-rose-700/80">
           If someone has your Private Key they will have full control of your
           wallet.
         </p>
@@ -140,7 +139,7 @@ export function PrivateKey() {
                 {copied ? (
                   <Check className="h-5 w-5 text-[#34C759]" strokeWidth={2} />
                 ) : (
-                  <BrumeIcon icon={Copy01Icon} size={20} />
+                  <CopyIcon className="size-5" />
                 )}
                 Copy
               </button>

@@ -25,6 +25,7 @@ import { scheduleWalletStateRefresh } from "../lib/schedule-wallet-state-refresh
 import { sortPortfolioTokensByBalanceDesc } from "../lib/sort-portfolio-by-balance";
 import * as msg from "../messaging";
 import { useWalletStore } from "../store";
+import { ShieldSolidIcon } from "@/components/Icons";
 
 function sanitizeDecimalInput(value: string, maxDecimals: number): string {
   let s = value.replace(/,/g, "").replace(/[^\d.]/g, "");
@@ -660,11 +661,9 @@ export function Shield() {
                 size={16}
                 className="shrink-0 text-muted-foreground brume-chevron-bounce"
               />
-              <img
-                src="/hero-new/Shield.png"
-                alt=""
-                className="size-16 shrink-0 object-contain"
-              />
+              <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-secondary ring-1 ring-border">
+                <ShieldSolidIcon className="h-9 w-9 text-[color:var(--extension-accent)]" />
+              </div>
             </div>
             <p className="text-center text-xl font-semibold text-foreground">
               {mode === "shield" ? "Shielding…" : "Unshielding…"}

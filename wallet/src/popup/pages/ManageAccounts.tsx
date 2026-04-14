@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Add01Icon, ArrowLeft02Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon } from "@hugeicons/core-free-icons";
 import { buttonVariants } from "@/components/ui/button";
 import { BrumeIcon } from "../components/BrumeIcon";
 import { truncateMiddle } from "../lib/format";
 import * as msg from "../messaging";
 import { useWalletStore } from "../store";
 import { cn } from "@/lib/utils";
+import { ArrowLeftIcon } from "@/components/Icons";
 
 export function ManageAccounts() {
   const { state, refresh } = useWalletStore();
@@ -45,7 +46,7 @@ export function ManageAccounts() {
           )}
           aria-label="Back"
         >
-          <BrumeIcon icon={ArrowLeft02Icon} size={22} />
+          <ArrowLeftIcon className="size-[22px]" />
         </Link>
         <h1 className="flex-1 text-center text-lg font-semibold text-foreground pr-8">
           Manage accounts

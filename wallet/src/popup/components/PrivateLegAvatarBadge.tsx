@@ -1,17 +1,9 @@
-import { Shield01Icon } from "@hugeicons/core-free-icons";
+import { ShieldIcon } from "@/components/Icons";
 import { cn } from "@/lib/utils";
-import { BrumeIcon } from "./BrumeIcon";
-
-// 
-// Default shield badge on the private / shielded leg (bottom-right of token avatar).
 
 export function PrivateLegAvatarBadge(props: {
   className?: string;
-    // Slightly larger for 44px avatars (e.g. Shield flow).
-
   large?: boolean;
-    // Larger badge for ~72px hero (e.g. Send shielded SPL).
-
   hero?: boolean;
 }) {
   const badge = props.hero
@@ -30,7 +22,11 @@ export function PrivateLegAvatarBadge(props: {
       )}
       aria-hidden
     >
-      <BrumeIcon icon={Shield01Icon} className="text-primary" size={iconSize} />
+      <ShieldIcon
+        width={iconSize}
+        height={iconSize}
+        className="text-primary p-1 rounded-full bg-primary/10"
+      />
     </div>
   );
 }

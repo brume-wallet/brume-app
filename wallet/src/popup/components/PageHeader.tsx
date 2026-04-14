@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { BrumeIcon } from "./BrumeIcon";
+import { ArrowLeftIcon } from "@/components/Icons";
 
 export function PageHeader(props: {
   title: string;
@@ -21,7 +20,7 @@ export function PageHeader(props: {
           )}
           aria-label="Back"
         >
-          <BrumeIcon icon={ArrowLeft01Icon} size={22} />
+          <ArrowLeftIcon className="size-[22px]" />
         </Link>
       ) : (
         <span className="w-9 shrink-0" />
